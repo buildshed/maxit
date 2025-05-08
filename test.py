@@ -3,6 +3,37 @@ from edgar import *
 from edgar.xbrl.stitching import XBRLS
 from collections.abc import Iterable
 
+import requests
+
+def get_ticker_given_name (company_name):
+    """
+    Searches for ticker symbols that match a given company name using Yahoo Finance's search API.
+
+    This function sends a query to Yahoo Finance and returns a list of dictionaries,
+    each containing the short name and ticker symbol of potential matches.
+
+    Args:
+        company_name (str): The name of the company to search for (e.g., "Apple").
+
+    Returns:
+        List[dict]: A list of dictionaries, each with:
+            - 'name': The company's short name (str)
+            - 'symbol': The stock ticker symbol (str)
+
+    Example:
+        >>> get_ticker("Apple")
+        [{'name': 'Apple Inc.', 'symbol': 'AAPL'}]
+    """
+    url = "https://query2.finance.yahoo.com/v1/finance/search"
+    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    params = {"q": company_name, "quotes_count": 5, "country": "United States"}
+
+    res = requests.get(url=url, params=params, headers={'User-Agent': user_agent})
+    data = res.json()
+    
+    result = [{"name": q["shortname"], "symbol": q["symbol"]} for q in data["quotes"]]
+    return result
+
 def get_latest_filings (ticker: str, form_type: str, n: int = 5) -> str:
     """
     Fetches the latest filings of the specified form type for a given ticker using SEC-API.
@@ -61,7 +92,6 @@ def get_income_dataframe(ticker:str, n: int = 5):
     income_df = income_statement.to_dataframe()
     return income_df
 
-print(get_latest_filings("MU", "10-K", n=5))
-print(get_income_dataframe('MU',n=5).to_string(index=False))
+print(get_ticker_given_name("Micron"))
 
 

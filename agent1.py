@@ -7,6 +7,30 @@ from langgraph.graph import START, StateGraph, MessagesState
 from langgraph.prebuilt import tools_condition, ToolNode
 from collections.abc import Iterable
 
+def get_ticker_given_name(company_name: str):
+
+    """
+    Searches for ticker symbols that match a given company name using Yahoo Finance's search API.
+    Args:
+        company_name (str): The name of the company to search for (e.g., "Apple").
+
+    Returns:
+        List[dict]: A list of dictionaries, each with:
+            - 'name': The company's short name (str)
+            - 'symbol': The stock ticker symbol (str)
+    """
+
+    url = "https://query2.finance.yahoo.com/v1/finance/search"
+    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    params = {"q": company_name, "quotes_count": 5, "country": "United States"}
+
+    res = requests.get(url=url, params=params, headers={'User-Agent': user_agent})
+    data = res.json()
+    
+    result = [{"name": q["shortname"], "symbol": q["symbol"]} for q in data["quotes"]]
+    return result
+
+
 def get_latest_filings (ticker: str, form_type: str, n: int = 5) -> str:
     """
     Fetches the latest filings of the specified form type for a given ticker using SEC-API.
@@ -66,7 +90,7 @@ def get_income_statement(ticker:str, n: int = 5):
     income_df = income_statement.to_dataframe()
     return income_df
 
-tools = [get_latest_filings, get_income_statement]
+tools = [get_latest_filings, get_income_statement, get_ticker_given_name]
 
 # Define LLM with bound tools
 llm = ChatOpenAI(model="gpt-4o")
