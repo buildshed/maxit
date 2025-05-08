@@ -1,107 +1,72 @@
 import os, requests 
 from langchain_core.messages import SystemMessage
 from langchain_openai import ChatOpenAI
-
+from edgar import *
+from edgar.xbrl.stitching import XBRLS
 from langgraph.graph import START, StateGraph, MessagesState
 from langgraph.prebuilt import tools_condition, ToolNode
+from collections.abc import Iterable
 
-def get_latest_filing(ticker: str, form_type: str):
-
+def get_latest_filings (ticker: str, form_type: str, n: int = 5) -> str:
     """
-    Fetches the latest annual report filing given the ticker using SEC-API.
+    Fetches the latest filings of the specified form type for a given ticker using SEC-API.
 
     Args:
-        ticker (str): The stock ticker (e.g. "AAPL")
-        form_type (str): the form type, "10-K" for annual report, "10-Q" for quarterly filing and "8-K" for material events filing 
+        ticker (str): The stock ticker (e.g., "AAPL").
+        form_type (str): The form type (e.g., "10-K" for annual reports, "10-Q" for quarterly, "8-K" for events).
+        n (int): Number of filings to retrieve. Defaults to 5.
 
     Returns:
-        str: last filing date, else an error message
+        str: A newline-separated string of the latest filings, or an error message.
     """
+    set_identity("your.name@example.com")
+    c = Company(ticker)
+    filings = c.get_filings(form=form_type).latest(n)  # Fixed this line
+    
+    if not isinstance(filings, Iterable): #handle edge case of n=1
+        filings = [filings]
+    
+    s = "\n".join(str(f) for f in filings)
+    return s
 
-    api_key = os.getenv("SEC_API_KEY")
-    if not api_key:
-        raise ValueError("SEC_API_KEY environment variable is not set.")
 
-    url = "https://api.sec-api.io"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": api_key
-    }
-    payload = {
-        "query": f'ticker:"{ticker.upper()}" AND formType:"{form_type}"',
-        "from": "0",
-        "size": "1",
-        "sort": [{"filedAt": {"order": "desc"}}]
-    }
-
-    response = requests.post(url, json=payload, headers=headers)
-    response.raise_for_status()
-    data = response.json()
-
-    if not data.get("filings"):
-        return None
-
-    latest_filing = data["filings"][0]
-    #print (latest_filing) 
-    return latest_filing['filedAt']
-
-def get_ticker_from_entity_name(entity_name: str) -> str:
+def get_income_statement(ticker:str, n: int = 5):
     """
-    Fetches the stock ticker for a given entity name using SEC-API.
+    Fetches the income statement as a pandas DataFrame for a given company ticker.
+
+    Processing: 
+    - Function retrieves the latest `n` 10-K filings in XBRL format for the specified ticker,
+    -Parses the XBRL data, extracts the income statements 
+    - Converts them into a structured pandas DataFrame. Each row represents a financial line item
+    (e.g., Revenue, Net Income), and each column corresponds to a reporting date.
 
     Args:
-        entity_name (str): Name of the entity (e.g. "Micron Technology")
+        ticker (str): The stock ticker symbol of the company (e.g., "AAPL", "MSFT").
+        n (int, optional): Number of most recent 10-K filings to retrieve. Defaults to 5.
 
     Returns:
-        str: Ticker symbol if found, else an error message
+        pd.DataFrame: A DataFrame containing the income statement with columns:
+            - `label`: Human-readable name of the financial item
+            - `concept`: XBRL concept identifier
+            - One column per reporting date with the corresponding value
+
+    Raises:
+        ValueError: If no filings or income statements are found.
+        Any network or parsing-related exceptions from underlying libraries.
     """
-    api_key = os.getenv("SEC_API_KEY")
-    if not api_key:
-        return "Error: SEC_API_KEY environment variable not set."
 
-    base_url = "https://api.sec-api.io/mapping/name/"
-    url = f"{base_url}{entity_name.replace(' ', '%20')}"
-    headers = {"Authorization": api_key}
+    c = Company(ticker)
+    filings = c.get_filings(form="10-K").latest(n)
+    # Ensure filings is a list
+    if not isinstance(filings, Iterable):
+        filings = [filings]
+    
+    xbs = XBRLS.from_filings(filings)
+    income_statement = xbs.statements.income_statement()
+    income_df = income_statement.to_dataframe()
+    return income_df
 
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        data = response.json()
-        if data and "ticker" in data[0]:
-            return data[0]["ticker"]
-        else:
-            return "Ticker not found"
-    except Exception as e:
-        return f"Error: {e}"
-
-def add(a: int, b: int) -> int:
-    """Adds a and b.
-
-    Args:
-        a: first int
-        b: second int
-    """
-    return a + b
-
-def multiply(a: int, b: int) -> int:
-    """Multiplies a and b.
-
-    Args:
-        a: first int
-        b: second int
-    """
-    return a * b
-
-def divide(a: int, b: int) -> float:
-    """Divide a and b.
-
-    Args:
-        a: first int
-        b: second int
-    """
-    return a / b
-
-tools = [get_latest_filing, get_ticker_from_entity_name]
+tools = [get_latest_filings, get_income_statement]
 
 # Define LLM with bound tools
 llm = ChatOpenAI(model="gpt-4o")
