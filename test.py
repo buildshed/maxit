@@ -4,6 +4,7 @@ from edgar.xbrl.stitching import XBRLS
 from collections.abc import Iterable
 
 import requests
+set_identity("your.name@example.com")
 
 def get_ticker_given_name (company_name):
     """
@@ -46,13 +47,12 @@ def get_latest_filings (ticker: str, form_type: str, n: int = 5) -> str:
     Returns:
         str: A newline-separated string of the latest filings, or an error message.
     """
-    set_identity("your.name@example.com")
+
     c = Company(ticker)
     filings = c.get_filings(form=form_type).latest(n)  # Fixed this line
         # Normalize to list if single object
     if not isinstance(filings, Iterable):
         filings = [filings]
-
     s = "\n".join(str(f) for f in filings)
     return s
 
@@ -92,6 +92,48 @@ def get_income_dataframe(ticker:str, n: int = 5):
     income_df = income_statement.to_dataframe()
     return income_df
 
-print(get_ticker_given_name("Micron"))
+def get_balance_sheet(ticker:str, n: int = 5):
+    """
+    Fetches the balance sheet as a pandas DataFrame for a given company ticker.
+
+    Processing: 
+    - Function retrieves the latest `n` 10-K filings in XBRL format for the specified ticker,
+    -Parses the XBRL data, extracts the balance sheet 
+    - Converts them into a structured pandas DataFrame. Each row represents a financial line item
+    (e.g., Accounts Payable, Cash, Current Debt, Equity), and each column corresponds to a reporting date.
+
+    Args:
+        ticker (str): The stock ticker symbol of the company (e.g., "AAPL", "MSFT").
+        n (int, optional): Number of most recent 10-K filings to retrieve. Defaults to 5.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the balance sheet with columns:
+            - `label`: Human-readable name of the financial item
+            - `concept`: XBRL concept identifier
+            - One column per reporting date with the corresponding value
+
+    Raises:
+        ValueError: If no filings or income statements are found.
+        Any network or parsing-related exceptions from underlying libraries.
+    """
+
+    c = Company(ticker)
+    filings = c.get_filings(form="10-K").latest(n)
+    # Ensure filings is a list
+    if not isinstance(filings, Iterable):
+        filings = [filings]
+    
+    xbs = XBRLS.from_filings(filings)
+    income_statement = xbs.statements.balance_sheet()
+    income_df = income_statement.to_dataframe()
+    return income_df
+
+c = Company("AAPL")
+filings = c.get_filings(form="10-K").latest(n=5)
+
+for filing in filings:
+    print("Filing date:", filing.filing_date)
+    print("Accession number:", filing.accession_no)
+    print("Items field:", filing.items)
 
 

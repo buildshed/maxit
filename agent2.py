@@ -1,127 +1,202 @@
 import os, requests 
 from langchain_core.messages import SystemMessage
 from langchain_openai import ChatOpenAI
-from typing import List, Tuple
+from edgar import *
+from edgar.xbrl.stitching import XBRLS
 from langgraph.graph import START, StateGraph, MessagesState
 from langgraph.prebuilt import tools_condition, ToolNode
-from langgraph.errors import NodeInterrupt
-from pydantic import BaseModel, Field
-from langchain_tavily import TavilySearch
+from collections.abc import Iterable
+from langchain.tools import tool
+from langchain_community.tools.tavily_search import TavilySearchResults
 from langgraph.types import Command, interrupt
-from langchain_core.tools import tool
 
-class Entity(BaseModel):
-    name: str = Field(..., description="Name of the entity")
-    ticker: str = Field(..., description="Ticker symbol of the entity")
-
-class TopEntitiesInput(BaseModel):
-    name_ticker_list: List[Entity] = Field(..., description="List of entity name-ticker pairs")
-    n: int = Field(..., description="Number of top entities to include")
+set_identity("your.name@example.com")
 
 def human_assistance(query: str) -> str:
     """Request assistance from a human."""
     human_response = interrupt({"query": query})
-    return human_response["data"]  
+    return human_response["data"]
+
+def web_search(query: str, num_results: int = 3) -> str:
+    """
+    Performs a web search using Tavily and returns the top results.
+
+    Args:
+        query (str): The search query.
+        num_results (int): Number of top results to return. Defaults to 3.
+
+    Returns:
+        str: Combined snippets from top search results.
+    """
+    search = TavilySearchResults(max_results=num_results)
+    results = search.run(query)
+    return results
+
+
+def get_ticker_given_name(company_name: str):
+
+    """
+    Searches for ticker symbols that match a given company name using Yahoo Finance's search API.
+    If more than one ticker is returned, get human assistance. 
+
+    Args:
+        company_name (str): The name of the company to search for (e.g., "Apple").
+
+    Returns:
+        List[dict]: A list of dictionaries, each with:
+            - 'name': The company's short name (str)
+            - 'symbol': The stock ticker symbol (str)
+    """
+
+    url = "https://query2.finance.yahoo.com/v1/finance/search"
+    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    params = {"q": company_name, "quotes_count": 5, "country": "United States"}
+
+    res = requests.get(url=url, params=params, headers={'User-Agent': user_agent})
+    data = res.json()
     
-def get_latest_filing(ticker: str, form_type: str):
+    result = [{"name": q["shortname"], "symbol": q["symbol"]} for q in data["quotes"]]
+    if len(result) > 1: 
+        options = "\n".join([f"{i+1}. {r['name']} ({r['symbol']})" for i, r in enumerate(result)])
+        return human_assistance(f"Found {len(result)} tickers:\n{options}\nHelp me select the right ticker.")
+    elif len(result) == 1:
+        return result[0]
+    
+    return "No matching ticker found."
 
+
+def get_latest_filings (ticker: str, form_type: str, n: int = 5) -> str:
     """
-    Fetches the latest annual report filing given the ticker using SEC-API.
+    Fetches the latest filings of the specified form type for a given ticker using SEC-API.
 
     Args:
-        ticker (str): The stock ticker (e.g. "AAPL")
-        form_type (str): the form type, "10-K" for annual report, "10-Q" for quarterly filing and "8-K" for material events filing 
+        ticker (str): The stock ticker (e.g., "AAPL").
+        form_type (str): The form type (e.g., "10-K" for annual reports, "10-Q" for quarterly, "8-K" for events).
+        n (int): Number of filings to retrieve. Defaults to 5.
 
     Returns:
-        str: last filing date, else an error message
+        str: A newline-separated string of the latest filings, or an error message.
     """
+    set_identity("your.name@example.com")
+    c = Company(ticker)
+    filings = c.get_filings(form=form_type).latest(n)  # Fixed this line
+    
+    if not isinstance(filings, Iterable): #handle edge case of n=1
+        filings = [filings]
+    
+    s = "\n".join(str(f) for f in filings)
+    return s
 
-    api_key = os.getenv("SEC_API_KEY")
-    if not api_key:
-        raise ValueError("SEC_API_KEY environment variable is not set.")
-
-    url = "https://api.sec-api.io"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": api_key
-    }
-    payload = {
-        "query": f'ticker:"{ticker.upper()}" AND formType:"{form_type}"',
-        "from": "0",
-        "size": "1",
-        "sort": [{"filedAt": {"order": "desc"}}]
-    }
-
-    response = requests.post(url, json=payload, headers=headers)
-    response.raise_for_status()
-    data = response.json()
-
-    if not data.get("filings"):
-        return None
-
-    latest_filing = data["filings"][0]
-    #print (latest_filing) 
-    return latest_filing['filedAt']
-
-
-def get_top_entities(name_ticker_list: List[Entity], n: int) -> str:
+def get_cash_flow_stmnt(ticker:str, n: int = 5):
     """
-    Give a long list of name-ticker pairs, this returns a string of the top `n` name-ticker pairs formatted as 'Name (TICKER)'.
+    Fetches the cash flow statement as a pandas DataFrame for a given company ticker.
+
+    Processing: 
+    - Function retrieves the latest `n` 10-K filings in XBRL format for the specified ticker,
+    -Parses the XBRL data, extracts the cash flow statement 
+    - Converts them into a structured pandas DataFrame. Each row represents a financial line item
+    (e.g., cash Flow from operations), and each column corresponds to a reporting date.
 
     Args:
-        name_ticker_list (List[Tuple[str, str]]): A list of (name, ticker) tuples.
-        n (int): Number of top entries to include.
+        ticker (str): The stock ticker symbol of the company (e.g., "AAPL", "MSFT").
+        n (int, optional): Number of most recent 10-K filings to retrieve. Defaults to 5.
 
     Returns:
-        str: Formatted string of top `n` entries.
-    """
-    top_n = name_ticker_list[:n]
-    return ', '.join(f"{e.name} ({e.ticker})" for e in top_n)
+        pd.DataFrame: A DataFrame containing the balance sheet with columns:
+            - `label`: Human-readable name of the financial item
+            - `concept`: XBRL concept identifier
+            - One column per reporting date with the corresponding value
 
-def get_ticker_from_entity_name(entity_name: str) -> str:
+    Raises:
+        ValueError: If no filings or cash flow statemnet(s) are found.
+        Any network or parsing-related exceptions from underlying libraries.
     """
-    Fetches the stock ticker for a given entity name using SEC-API.
+
+    c = Company(ticker)
+    filings = c.get_filings(form="10-K").latest(n)
+    # Ensure filings is a list
+    if not isinstance(filings, Iterable):
+        filings = [filings]
+    
+    xbs = XBRLS.from_filings(filings)
+    cash_flow_stmnt = xbs.statements.cashflow_statement()
+    cash_flow_df = cash_flow_stmnt.to_dataframe()
+    return cash_flow_df
+
+
+def get_balance_sheet(ticker:str, n: int = 5):
+    """
+    Fetches the balance sheet as a pandas DataFrame for a given company ticker.
+
+    Processing: 
+    - Function retrieves the latest `n` 10-K filings in XBRL format for the specified ticker,
+    -Parses the XBRL data, extracts the balance sheet 
+    - Converts them into a structured pandas DataFrame. Each row represents a financial line item
+    (e.g., Accounts Payable, Cash, Current Debt, Equity), and each column corresponds to a reporting date.
 
     Args:
-        entity_name (str): Name of the entity (e.g. "Micron Technology")
+        ticker (str): The stock ticker symbol of the company (e.g., "AAPL", "MSFT").
+        n (int, optional): Number of most recent 10-K filings to retrieve. Defaults to 5.
 
     Returns:
-        str: Ticker symbol if found, else an error message
+        pd.DataFrame: A DataFrame containing the balance sheet with columns:
+            - `label`: Human-readable name of the financial item
+            - `concept`: XBRL concept identifier
+            - One column per reporting date with the corresponding value
+
+    Raises:
+        ValueError: If no filings or balance sheet statement(s) are found.
+        Any network or parsing-related exceptions from underlying libraries.
     """
-    api_key = os.getenv("SEC_API_KEY")
-    if not api_key:
-        return "Error: SEC_API_KEY environment variable not set."
 
-    base_url = "https://api.sec-api.io/mapping/name/"
-    url = f"{base_url}{entity_name.replace(' ', '%20')}"
-    headers = {"Authorization": api_key}
+    c = Company(ticker)
+    filings = c.get_filings(form="10-K").latest(n)
+    # Ensure filings is a list
+    if not isinstance(filings, Iterable):
+        filings = [filings]
+    
+    xbs = XBRLS.from_filings(filings)
+    balance_sheet = xbs.statements.balance_sheet()
+    balance_sheet_df = balance_sheet.to_dataframe()
+    return balance_sheet_df
 
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        
-        entities = response.json()
-        print("Found {} entities".format(len(entities)))
-        
-        if len(entities) == 1: 
-            return entities[0]["ticker"]
-        elif len(entities) > 1: 
-            name_ticker_list = [Entity(name=e['name'], ticker=e['ticker']) for e in entities]
-            top_3 = get_top_entities(name_ticker_list, 3)
-            raise NodeInterrupt(f"Found {len(entities)} matching entities — top 3 being: {top_3}. Please pick one.")
+def get_income_statement(ticker:str, n: int = 5):
+    """
+    Fetches the income statement as a pandas DataFrame for a given company ticker.
 
-        elif len(entities) == 0:
-            raise NodeInterrupt(f"No matching entities found. Please refine the entity name.")
-        
-    except Exception as e:
-        return f"Error: {e}"
+    Processing: 
+    - Function retrieves the latest `n` 10-K filings in XBRL format for the specified ticker,
+    -Parses the XBRL data, extracts the income statements 
+    - Converts them into a structured pandas DataFrame. Each row represents a financial line item
+    (e.g., Revenue, Net Income), and each column corresponds to a reporting date.
 
-tavily_search_tool = TavilySearch(
-    max_results=5,
-    search_depth="basic",
-    topic="general")
+    Args:
+        ticker (str): The stock ticker symbol of the company (e.g., "AAPL", "MSFT").
+        n (int, optional): Number of most recent 10-K filings to retrieve. Defaults to 5.
 
-tools = [get_latest_filing, get_ticker_from_entity_name, get_top_entities, tavily_search_tool, human_assistance]
+    Returns:
+        pd.DataFrame: A DataFrame containing the income statement with columns:
+            - `label`: Human-readable name of the financial item
+            - `concept`: XBRL concept identifier
+            - One column per reporting date with the corresponding value
+
+    Raises:
+        ValueError: If no filings or income statements are found.
+        Any network or parsing-related exceptions from underlying libraries.
+    """
+
+    c = Company(ticker)
+    filings = c.get_filings(form="10-K").latest(n)
+    # Ensure filings is a list
+    if not isinstance(filings, Iterable):
+        filings = [filings]
+    
+    xbs = XBRLS.from_filings(filings)
+    income_statement = xbs.statements.income_statement()
+    income_df = income_statement.to_dataframe()
+    return income_df
+
+tools = [get_latest_filings, get_income_statement,get_balance_sheet, get_cash_flow_stmnt, get_ticker_given_name, web_search, human_assistance]
 
 # Define LLM with bound tools
 llm = ChatOpenAI(model="gpt-4o")
