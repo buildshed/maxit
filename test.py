@@ -56,7 +56,7 @@ def get_latest_filings (ticker: str, form_type: str, n: int = 5) -> str:
     s = "\n".join(str(f) for f in filings)
     return s
 
-def get_income_dataframe(ticker:str, n: int = 5):
+def get_income_statement(ticker:str, n: int = 5):
     """
     Fetches the income statement as a pandas DataFrame for a given company ticker.
 
@@ -128,12 +128,6 @@ def get_balance_sheet(ticker:str, n: int = 5):
     income_df = income_statement.to_dataframe()
     return income_df
 
-c = Company("AAPL")
-filings = c.get_filings(form="10-K").latest(n=5)
-
-for filing in filings:
-    print("Filing date:", filing.filing_date)
-    print("Accession number:", filing.accession_no)
-    print("Items field:", filing.items)
-
-
+from IPython.display import display
+df = get_income_statement("MU", n=3)
+df.to_csv("income_statement.csv", index=False)

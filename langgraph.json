@@ -2,7 +2,8 @@
   "dockerfile_lines": [],
   "graphs": {
     "agent_1": "./agent1.py:graph",
-    "agent_2": "./agent2.py:graph"
+    "agent_2": "./agent2.py:graph",
+    "agent_3": "./agent3.py:graph"
   },
   "env": "./.env",
   "python_version": "3.11",

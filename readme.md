@@ -11,4 +11,10 @@ Human in the loop:
 - If number of tickers found > 1, then ask the human which one. 
 
 
-### Agent 3: Peer Comparison 
+### Agent 3: State, Peer Comparison 
+
+
+### Agent 4: LT memory 
+
+
+### Agent 4: RAG tool with AR 
