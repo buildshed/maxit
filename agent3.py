@@ -41,6 +41,7 @@ class BlueprintExecutionStatus(TypedDict, total=False):
 
 class AgentState(TypedDict, total=False):
     user_id: str
+    mode: Literal["chatbot", "blueprint"]
     current_blueprint: BlueprintName  # e.g., ["Revenue Comparison"]
     current_blueprint_execution_status: BlueprintExecutionStatus
     messages: Annotated[list, add_messages]
@@ -238,24 +239,39 @@ def get_income_statement(ticker:str, n: int = 5):
 # Chatbot Node
 def chatbot(state: AgentState):
     message = llm_with_tools.invoke(state["messages"])
-    assert len(message.tool_calls) <= 1
     return {"messages": [message]}
 
 def detect_blueprint(state: AgentState):
-    structured_llm = llm.with_structured_output(BlueprintDecision)
-    prompt = (
-            "You are an assistant that classifies whether a user's message corresponds to one of the known financial blueprints.\n"
-            "Pick one of the blueprint names, or null if none applies."
-        )
-    last_message = str(state["messages"][-1].content)
-    result = structured_llm.invoke(prompt + "\n\nUser message:\n" + last_message)
-    blueprint = result.blueprint  # Optional[str]
-    print(f"[detect_blueprint] Detected blueprint: {blueprint}")
-    
-    state_update = {
-        "current_blueprint": blueprint
-    }
-    return state_update
+    mode = state.get("mode")
+    if mode == "blueprint":
+        print(f"[detect_blueprint] Already in blueprint mode: {state.get('current_blueprint')}")
+        return {}
+    elif mode == "chatbot":
+        print("[detect_blueprint] Chatbot mode active — skipping blueprint detection")
+        return {}
+    else:
+        structured_llm = llm.with_structured_output(BlueprintDecision)
+        prompt = (
+                "You are an assistant that classifies whether a user's message corresponds to one of the known financial blueprints.\n"
+                "Pick one of the blueprint names, or null if none applies."
+            )
+        last_message = str(state["messages"][-1].content)
+        result = structured_llm.invoke(prompt + "\n\nUser message:\n" + last_message)
+        blueprint = result.blueprint  # Optional[str]
+        print(f"[detect_blueprint] Detected blueprint: {blueprint}")
+        
+        state_update = {}
+        if blueprint: 
+            state_update = {
+                "mode": "blueprint",
+                "current_blueprint": blueprint
+            }
+        else: 
+            state_update = {
+            "mode": "chatbot", 
+            "current_blueprint": None
+            }
+        return state_update
 
 def run_blueprint(state): # Run the peer comparison blueprint
     state.setdefault("current_blueprint_execution_status", {}) #should be moved into a dedicated fn. 
@@ -263,11 +279,11 @@ def run_blueprint(state): # Run the peer comparison blueprint
     return state
 
 
-def select_blueprint_or_chat(state) -> Literal["chatbot", "run_blueprint"]:
-    if state['current_blueprint'] == "":
-        return "chatbot"
-    else:
+def select_blueprint_or_chat(state) -> Literal["chatbot", "run_blueprint"]:  
+    if state['current_blueprint']: 
         return "run_blueprint"
+    else:
+        return "chatbot"
 
 tools = [get_latest_filings, get_income_statement,get_balance_sheet, get_cash_flow_stmnt, get_ticker_given_name, web_search, human_assistance]
 
