@@ -246,7 +246,7 @@ def detect_blueprint(state: AgentState):
     if mode == "blueprint":
         print(f"[detect_blueprint] Already in blueprint mode: {state.get('current_blueprint')}")
         return {}
-    elif mode == "chatbot":
+    elif mode == "chatbot": # Should be interrupt here to ask the user if switch to blueprint mode
         print("[detect_blueprint] Chatbot mode active — skipping blueprint detection")
         return {}
     else:
@@ -268,8 +268,7 @@ def detect_blueprint(state: AgentState):
             }
         else: 
             state_update = {
-            "mode": "chatbot", 
-            "current_blueprint": None
+            "mode": "chatbot"
             }
         return state_update
 
@@ -280,10 +279,10 @@ def run_blueprint(state): # Run the peer comparison blueprint
 
 
 def select_blueprint_or_chat(state) -> Literal["chatbot", "run_blueprint"]:  
-    if state['current_blueprint']: 
-        return "run_blueprint"
-    else:
+    if state['mode'] == 'chatbot': 
         return "chatbot"
+    else:
+        return "run_blueprint"
 
 tools = [get_latest_filings, get_income_statement,get_balance_sheet, get_cash_flow_stmnt, get_ticker_given_name, web_search, human_assistance]
 

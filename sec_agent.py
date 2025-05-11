@@ -67,6 +67,32 @@ def get_ticker_given_name(company_name: str):
     result = [{"name": q["shortname"], "symbol": q["symbol"]} for q in data["quotes"]]
     return result
 
+# Get the CIK 
+def get_cik (name: str) -> str:
+    """
+    Fetches the CIK (Central Index Key) given the entity name.
+
+    Args:
+        name (str): The name of the entity (e.g., "Micron Technology").
+    
+    Returns:
+        str: The CIK number of the entity (e.g. 'CIK0001730168').
+    """
+    tickers = get_ticker_given_name(name)
+    if not isinstance(tickers, Iterable): #handle edge case of n=1
+        tickers = [tickers]
+    ticker = tickers[0]['symbol']
+    
+    filings = get_latest_filings(ticker,"10-K", n=1)
+    if not isinstance(filings, Iterable): #handle edge case of n=1
+        filings = [filings]
+    cik_raw = filings[0].cik
+    
+    cik_formatted = f"CIK{int(cik_raw):010d}"
+
+    return cik_formatted
+
+
 # Get latest filings 
 def get_latest_filings(ticker: str, form_type: str, n: int = 5) -> str:
     """
@@ -86,7 +112,7 @@ def get_latest_filings(ticker: str, form_type: str, n: int = 5) -> str:
     if not isinstance(filings, Iterable): #handle edge case of n=1
         filings = [filings]
     
-    s = "\n".join(str(f) for f in filings)
+    s = filings # "\n".join(str(f) for f in filings)
     return s
 
 ## get cash flow or income statement or balance sheet 
@@ -169,7 +195,7 @@ def chatbot(state: dict) -> dict:
     return {"messages": [message]}
 
 # Define Tools (including web search, chatbot. Exclude human assistance)
-tools = [web_search, get_ticker_given_name, get_latest_filings, get_financial_statement, get_client_info, save_client_info]
+tools = [web_search, get_ticker_given_name, get_cik, get_latest_filings, get_financial_statement, get_client_info, save_client_info]
 llm = ChatOpenAI(model="gpt-4o")
 llm_with_tools = llm.bind_tools(tools)
 store = InMemoryStore() 
