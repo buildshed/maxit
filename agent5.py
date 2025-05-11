@@ -34,14 +34,29 @@ broadcom: ClientMemory = {
 store.put(("clients",), "CIK0001730168", broadcom)
 
 def save_client_info(client_memory: ClientMemory) -> str: 
-    """Save user info."""
+    """
+    Saves client information into the memory store.
+    Args:
+        ClientMemory object: The ClientMemory object that contains the company CIK, company name, company tickers (min 1) and pers (optional) 
+
+    Returns:
+        str: Success message 
+    """
+
     # Same as that provided to `create_react_agent`
     store = get_store() 
     store.put(("clients",), client_memory["cik"], client_memory) 
     return "Successfully saved user info."
 
 def get_client_info(company_cik: str) -> str:
-    """Look up client info based on CIK. Example CIK is 'CIK0000723125' """
+    """
+    Retrieves client information from the memory store.
+    Args:
+        Company CIK: CIK is of the format 'CIK0001730168'. Always use 'CIK' prefix 
+
+    Returns:
+        str: Status message 
+    """
     
     store = get_store() 
     client_info = store.get(("clients",), company_cik) 
@@ -64,10 +79,11 @@ ai_message = next(
     if isinstance(msg, AIMessage) and msg.content.strip()
 )
 print(ai_message.content)
+print(response)
 
 # Run the agent to save
 response = agent.invoke(
-    {"messages": [{"role": "user", "content": "save client information for NVIDIA CIK0001045810 ticker is NVDA"}]}
+    {"messages": [{"role": "user", "content": "save client information for NVIDIA CIK0001045810 ticker NVDA"}]}
 )
 # Get the first AIMessage with non-empty content
 ai_message = next(
@@ -75,6 +91,7 @@ ai_message = next(
     if isinstance(msg, AIMessage) and msg.content.strip()
 )
 print(ai_message.content)
+print(response)
 
 # Run the agent to retrieve
 response = agent.invoke(
@@ -86,5 +103,4 @@ ai_message = next(
     if isinstance(msg, AIMessage) and msg.content.strip()
 )
 print(ai_message.content)
-
 print(response)
