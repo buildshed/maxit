@@ -28,6 +28,22 @@ class ClientMemory(TypedDict):
     tickers: List[str]
     peers: NotRequired[List[PeerInfo]]
 
+# util functions 
+def util_ensure_list(item):
+    """
+    Ensures the input is returned as a list.
+    - If input is None → returns an empty list.
+    - If input is a string → wraps it in a list.
+    - If input is a non-iterable → wraps it in a list.
+    - If input is an iterable (excluding string/bytes) → converts it to a list.
+    """
+    if item is None:
+        return []
+    if isinstance(item, str) or not isinstance(item, Iterable):
+        return [item]
+    
+    return list(item)
+
 
 ## Web Search 
 def web_search(query: str, num_results: int = 3) -> str:
@@ -79,13 +95,12 @@ def get_cik (name: str) -> str:
         str: The CIK number of the entity (e.g. 'CIK0001730168').
     """
     tickers = get_ticker_given_name(name)
-    if not isinstance(tickers, Iterable): #handle edge case of n=1
-        tickers = [tickers]
+    tickers = util_ensure_list(tickers)
     ticker = tickers[0]['symbol']
     
     filings = get_latest_filings(ticker,"10-K", n=1)
-    if not isinstance(filings, Iterable): #handle edge case of n=1
-        filings = [filings]
+    filings = util_ensure_list(filings)
+    
     cik_raw = filings[0].cik
     
     cik_formatted = f"CIK{int(cik_raw):010d}"
@@ -109,8 +124,7 @@ def get_latest_filings(ticker: str, form_type: str, n: int = 5) -> str:
     c = Company(ticker)
     filings = c.get_filings(form=form_type).latest(n)  # Fixed this line
     
-    if not isinstance(filings, Iterable): #handle edge case of n=1
-        filings = [filings]
+    filings = util_ensure_list(filings)
     
     s = filings # "\n".join(str(f) for f in filings)
     return s
@@ -139,9 +153,7 @@ def get_financial_statement(
     """
     c = Company(ticker)
     filings = c.get_filings(form="10-K").latest(n)
-
-    if not isinstance(filings, Iterable):
-        filings = [filings]
+    filings = util_ensure_list(filings)
 
     xbs = XBRLS.from_filings(filings)
 
