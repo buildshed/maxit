@@ -8,6 +8,7 @@ from langchain_core.messages import AIMessage
 from typing_extensions import TypedDict, NotRequired, List
 from langchain_community.tools.tavily_search import TavilySearchResults
 import requests 
+import finnhub, json, os
 from edgar import *
 from edgar.xbrl.stitching import XBRLS
 from typing import Literal
@@ -15,7 +16,7 @@ from collections.abc import Iterable
 import pandas as pd
 from langgraph.graph import START, StateGraph, MessagesState
 from langgraph.prebuilt import tools_condition, ToolNode
-
+from datetime import datetime, timezone
 
 # Define classes 
 class PeerInfo(TypedDict):
@@ -29,6 +30,22 @@ class ClientMemory(TypedDict):
     peers: NotRequired[List[PeerInfo]]
 
 # util functions 
+def convert_unix_to_datetime(timestamp: int) -> str:
+    """
+    Convert a UNIX timestamp to a human-readable date and time (UTC).
+
+    Args:
+        timestamp (int): UNIX timestamp (seconds since epoch).
+
+    Returns:
+        str: Formatted date and time in 'YYYY-MM-DD HH:MM:SS' format (UTC).
+    
+    Example:
+        convert_unix_to_datetime(1747771200)  # → '2025-05-20 20:00:00'
+    """
+    dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+    return dt.strftime('%Y-%m-%d %H:%M:%S UTC')
+
 def util_ensure_list(item):
     """
     Ensures the input is returned as a list.
@@ -200,6 +217,86 @@ def get_client_info(company_cik: str) -> str:
     client_info = store.get(("clients",), company_cik) 
     return str(client_info.value) if client_info else "Unknown client"
 
+def get_earnings(ticker: str, n: int):
+    """
+    Retrieve the most recent quarterly earnings data for a given company ticker.
+    This function uses the Finnhub API to fetch up to `n` earnings records for the specified
+    company, including actual and estimated earnings per share (EPS), the reporting period,
+    and earnings surprises.
+    Args:
+        ticker (str): The stock ticker symbol of the company (e.g., "AAPL").
+        n (int): The number of most recent earnings records to retrieve.
+    Returns:
+        list[dict]: A list of dictionaries, each containing:
+            - actual (float): Reported EPS.
+            - estimate (float): Analyst consensus EPS estimate.
+            - period (str): Fiscal period end date (YYYY-MM-DD).
+            - quarter (int): Fiscal quarter number.
+            - year (int): Fiscal year.
+            - surprise (float): Difference between actual and estimated EPS.
+            - surprisePercent (float): Surprise as a percentage of the estimate.
+            - symbol (str): Ticker symbol.
+    Example:
+        get_earnings("AAPL", 2)
+    """
+
+    earnings_items = finnhub_client.company_earnings(ticker, limit=n)
+    return earnings_items
+
+def get_analyst_rating_summary(ticker: str):
+    """
+    Retrieve the most recent analyst rating summary for a given company ticker.
+
+    This function queries the Finnhub API to fetch analyst recommendations,
+    including counts of buy, hold, sell, strong buy, and strong sell ratings
+    for the latest available period.
+
+    Args:
+        ticker (str): The stock ticker symbol of the company (e.g., "AAPL").
+
+    Returns:
+        list[dict]: A list containing a single dictionary with:
+            - strongBuy (int): Number of analysts issuing a strong buy rating.
+            - buy (int): Number of buy ratings.
+            - hold (int): Number of hold ratings.
+            - sell (int): Number of sell ratings.
+            - strongSell (int): Number of strong sell ratings.
+            - period (str): The date of the rating summary (YYYY-MM-DD).
+            - symbol (str): Ticker symbol.
+
+    Example:
+        get_analyst_rating_summary("AAPL")
+    """
+    reco_items = finnhub_client.recommendation_trends(ticker)
+    return reco_items
+
+def get_stock_price(ticker: str):
+    """
+    Retrieve the latest stock price quote for a given company ticker.
+
+    This function uses the Finnhub API to fetch real-time market data,
+    including the current price, price change, opening price, and more.
+
+    Args:
+        ticker (str): The stock ticker symbol of the company (e.g., "AAPL").
+
+    Returns:
+        dict: A dictionary containing the latest quote data with the following fields:
+            - c (float): Current price.
+            - d (float): Change in price from the previous close.
+            - dp (float): Percentage change from the previous close.
+            - h (float): High price of the current trading session.
+            - l (float): Low price of the current trading session.
+            - o (float): Opening price of the current trading session.
+            - pc (float): Previous close price.
+            - t (int): UNIX timestamp of the quote.
+
+    Example:
+        get_stock_price("AAPL")
+    """
+
+    quote_items = finnhub_client.quote(ticker)
+    return quote_items
 
 # Chatbot Node (uses basic dict state)
 def chatbot(state: dict) -> dict:
@@ -207,12 +304,18 @@ def chatbot(state: dict) -> dict:
     return {"messages": [message]}
 
 # Define Tools (including web search, chatbot. Exclude human assistance)
-tools = [web_search, get_ticker_given_name, get_cik, get_latest_filings, get_financial_statement, get_client_info, save_client_info]
+tools = [web_search, get_stock_price, get_analyst_rating_summary, get_earnings, convert_unix_to_datetime, get_ticker_given_name, get_cik, get_latest_filings, get_financial_statement, get_client_info, save_client_info]
 llm = ChatOpenAI(model="gpt-4o")
 llm_with_tools = llm.bind_tools(tools)
 store = InMemoryStore() 
 
+# Set identity for EdgarTools
 set_identity("your.name@example.com")
+
+#Set finnhub_client
+fn_api_key=os.getenv("FINNHUB_API_KEY")
+finnhub_client = finnhub.Client(api_key=fn_api_key)
+
 
 # Define and complile graph  
 # Build graph

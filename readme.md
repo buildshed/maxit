@@ -18,28 +18,40 @@ Router Logic
 - Agent has memory about its peers 
 - At the end of a conversation, memory is updated,as applicable 
 
-MVP-1: 
-
-(as a simple repo that runs on laptop)
-1. Front End: Langraph Studio DONE
-3. Memory: Short term DONE
+MVP-1: As a simple repo that runs on laptop using `langgraph dev`)
+1. ChatUI: Agent UI (https://agentchat.vercel.app/)
+2. Agent Orchestration Framework: Langgraph 
+3. Agents: 
+    1 'Planner Layer' Agent: RM Agent
+    1 'Agent Layer' Agent - SEC Filings Agent, Equity Snapshot Agent, News Agent
+4. Tools ('Tooling Layer')
+    a) Data Pipelines: None
+    b) Execution Tools: 
+    SEC Filings Agent: web search, get_ticker_given_name, get_cik, get_latest_filings,  get_financial_statement (cash flow, bs, income statement)
+    Equity Snapshot Agent: get_earnings, get_analyst_rating_summary, get_stock_quote
+    News Agent: get_news(ticker) 
+    c) Memory Tools: save_client_memory, get_client_info, update_client_info
+    d) Observability Tools: 
+    e) Policy & Governance Tools: None 
+    f) Action Tools: None 
+    g) Utility (Common) Tools
+5. Actions - None 
+6. Data - SEC Filings 
+7. Memory: 
+    Short term DONE
     - `messages` construct of langgraph 
-4. memory: Long term DONE (agent5)
+    Long term DONE (agent5)
     - `Inmemory` 
-    - Namespaces: `client`, `relationship`
+    - Namespaces: `client`
         client: [client name, ticker(s), {peers: dict of name, ticker}, {saved_analysis: analysisname, exec_date and time, Output: (link)}
-5. Human in the loop: 
-    - Multiple tickers found 
-    - Save to LT memory 
-5. Actions: 
-    - Save to  LT memory (client namespace) 
-6. Shared Services : 
-    - Utility Tools - get bal sheet, cash flow, income statement, get ticker (from external), show tools (get str of all tools), web search
-    - Memory - save analysis to LT, get analysis from LT, get peers, save peers, get ticker (from memory), save ticker
-7. Reasoning Framework: 
-    - START 
-    - Chatbot with tools 
-    - Update memory (if needed)
-    - END 
-
+8. Intervention & Oversight: (e..g Human in the Loop) - None 
+9. Observability - Langgraph Studio 
+10. Pre-defined Frameworks: 1- Peer Comparison framework (as a prompt)
+10a. Tasks - None 
+10b. Blueprints: None 
+11. Reasoning: Chatbot -> Tools -> Save or Update Memory (optional) 
+12. Router -None. Needed in multi agent architecture  
+13. Security - None 
+14. Evaluation - None
+        
     
