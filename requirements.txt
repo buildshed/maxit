@@ -5,4 +5,5 @@ langchain-community
 langchain-openai
 langchain-tavily
 edgartools
-
+finnhub-python
+yfinance

@@ -27,7 +27,7 @@ MVP-1: As a simple repo that runs on laptop using `langgraph dev`)
 4. Tools ('Tooling Layer')
     a) Data Pipelines: None
     b) Execution Tools: 
-    SEC Filings Agent: web search, get_ticker_given_name, get_cik, get_latest_filings,  get_financial_statement (cash flow, bs, income statement)
+    SEC Filings Agent: web search, get_ticker_given_name, get_cik, get_latest_filings,  get_financial_statement (cash flow, balance sheet, income statement)
     Equity Snapshot Agent: get_earnings, get_analyst_rating_summary, get_stock_quote
     News Agent: get_news(ticker) 
     c) Memory Tools: save_client_memory, get_client_info, update_client_info
