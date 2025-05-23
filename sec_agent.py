@@ -18,6 +18,8 @@ from langgraph.graph import START, StateGraph, MessagesState
 from langgraph.prebuilt import tools_condition, ToolNode
 from datetime import datetime, timezone
 from langchain_community.tools.yahoo_finance_news import YahooFinanceNewsTool
+from edgar.company_reports import TenK
+from pydantic import BaseModel, Field
 
 # Define classes 
 class PeerInfo(TypedDict):
@@ -29,6 +31,43 @@ class ClientMemory(TypedDict):
     name: str
     tickers: List[str]
     peers: NotRequired[List[PeerInfo]]
+
+class KeyValuePair(BaseModel):
+    key: str = Field(..., description="Name of the metric or fact")
+    value: str = Field(..., description="Value associated with the key")
+
+class BusinessSection(BaseModel):
+    heading: str = Field(..., description="Section heading")
+    description: str = Field(..., description="Description of what the section covers")
+    summary: Optional[str] = Field(None, description="Summary extracted from the filing")
+    key_values: List[KeyValuePair] = Field(default_factory=list)
+
+class FilingItemSummary(BaseModel):
+    title: str = Field(..., description="Title of the filing section, e.g., 'Business' or 'Risk Factors'")
+    description: str = Field(..., description="High-level description of what this item covers")
+    sections: List[BusinessSection]
+
+REQUIRED_KEY_VALUES = {
+    "ITEM 1": [
+        "Number of Employees",
+        "Countries of Operation",
+        "Main Products",
+        "Revenue Segments"
+    ],
+    "ITEM 1A": [
+        "FX Hedging Notional",
+        "Geopolitical Risk",
+        "Interest Rate Risk",
+        "Supply Chain Risk"
+    ],
+    "ITEM 7A": [
+        "FX Hedging Notional",
+        "Interest Rate Swap Notional",
+        "Commodity Exposure",
+        "Sensitivity to Rate Movements"
+    ]
+}
+
 
 # util functions 
 def convert_unix_to_datetime(timestamp: int) -> str:
@@ -61,6 +100,75 @@ def util_ensure_list(item):
         return [item]
     
     return list(item)
+
+def generate_structured_item_from_10k(
+    ticker: str,
+    item_code: str
+) -> FilingItemSummary:
+    """
+    Summarize and extract structured insights from a specific section of a 10-K filing.
+
+    Use this tool when a user asks for an overview, summary, or key metrics related to a specific part
+    of a company's 10-K filing. The function converts unstructured text into a structured summary with 
+    section-wise insights and extracted key-value pairs.
+
+    The `item_code` should be one of the standard 10-K sections:
+      - "ITEM 1": Business — Overview of the company, products, markets, and operations
+      - "ITEM 1A": Risk Factors — Material risks that could affect the business
+      - "ITEM 1B": Any comments from the SEC staff on the company’s previous filings that are unresolved
+      - "ITEM 2": Information about the physical properties owned or leased by the company
+      - "ITEM 3": Details of significant ongoing legal proceedings
+      - "ITEM 4": Relevant for mining companies, disclosures about mine safety and regulatory compliance
+      - "ITEM 5": Information on the company’s equity, including stock performance and shareholder matters
+      - "ITEM 7": Management's perspective on the financial condition, changes in financial condition, and results of operations.
+      - "ITEM 7A": Market Risk — Exposure to FX, interest rates, and commodities, including hedging notionals
+      - "ITEM 7": MD&A — Management’s Discussion and Analysis of financial condition and results
+      - "ITEM 8": Financial Statements — Core financial reports (income, balance sheet, cash flow)
+      - "ITEM 9": Evaluation of the effectiveness of the design and operation of the company’s disclosure controls and procedures
+      - "ITEM 9A": Evaluation of internal controls over financial reporting.
+      - "ITEM 13": Information on transactions between the company and its directors, officers and significant shareholders.
+    Input:
+      ticker: Stock ticker 
+      item_code: The section of the filing to process (e.g., "ITEM 1A")
+    
+    Output:
+      FilingItemSummary: A structured object containing section summaries and key data extracted from the text
+    """
+    #get an LLM with structure output 
+    llm = ChatOpenAI(model="gpt-4o")
+    
+    # Get the latest 10-K filing
+    company = find(ticker)  
+    filing = company.get_filings(form="10-K").latest(1)
+    #filing = filing[0]
+    tenk = filing.obj()
+
+    item = tenk.structure.get_item(item_code)
+    if not item:
+        raise ValueError(f"{item_code} not found in TenK.structure")
+    item_txt = str(tenk[item_code])
+    
+    title = item["Title"]
+    description = item["Description"]
+    required_keys = REQUIRED_KEY_VALUES.get(item_code.upper(), [])
+    required_key_text = (
+    "- Try to extract the following key-value pairs if available:\n" +
+    "".join(f"  • {key}\n" for key in required_keys) + "\n"
+    if required_keys else "")
+
+    prompt = (
+    f"You are a financial analyst assistant. Read the following text from {title} ({item_code}) "
+    "of a 10-K filing. Extract and populate the following structured format:\n\n"
+    f"{description}\n\n"
+    "- Divide the text into logical subsections.\n"
+    "- For each subsection, write a 3–5 sentence summary.\n"
+    "- Add important numeric or categorical values as key-value pairs.\n"
+    f"{required_key_text}"
+    "Format your output as a FilingItemSummary(title, description, sections=[...]).\n\n"
+    f"TEXT:\n{item_txt}")
+    #print (prompt)
+    structured_llm = llm.with_structured_output(FilingItemSummary)
+    return structured_llm.invoke(prompt)
 
 
 ## Web Search 
@@ -305,7 +413,7 @@ def chatbot(state: dict) -> dict:
     return {"messages": [message]}
 
 # Define Tools (including web search, chatbot. Exclude human assistance)
-tools = [web_search, YahooFinanceNewsTool(), get_stock_price, get_analyst_rating_summary, get_earnings, convert_unix_to_datetime, get_ticker_given_name, get_cik, get_latest_filings, get_financial_statement, get_client_info, save_client_info]
+tools = [web_search, YahooFinanceNewsTool(), generate_structured_item_from_10k, get_stock_price, get_analyst_rating_summary, get_earnings, convert_unix_to_datetime, get_ticker_given_name, get_cik, get_latest_filings, get_financial_statement, get_client_info, save_client_info]
 llm = ChatOpenAI(model="gpt-4o")
 llm_with_tools = llm.bind_tools(tools)
 store = InMemoryStore() 
