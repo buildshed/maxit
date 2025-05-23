@@ -23,13 +23,13 @@ from pydantic import BaseModel, Field
 
 # Define classes 
 class PeerInfo(TypedDict):
-    name: str
+    name: str # as per ticker
     ticker: str
 
 class ClientMemory(TypedDict): 
     cik: str
-    name: str
-    tickers: List[str]
+    name: str #as per ticker
+    tickers: str
     peers: NotRequired[List[PeerInfo]]
 
 class KeyValuePair(BaseModel):
@@ -258,15 +258,17 @@ def get_latest_filings(ticker: str, form_type: str, n: int = 5) -> str:
 ## get cash flow or income statement or balance sheet 
 def get_financial_statement(
     ticker: str, 
+    form_type: Literal["10-K", "10-Q"],
     statement_type: Literal["cashflow", "balance_sheet", "income"], 
     n: int = 5
 ) -> pd.DataFrame:
     """
-    Fetches a financial statement (cash flow, balance sheet, or income statement) 
-    as a pandas DataFrame for a given company ticker.
+    Fetches financial statement(s) (cash flow, balance sheet, or income statement) 
+    as a pandas DataFrame for a given company ticker and form type
 
     Args:
         ticker (str): Stock ticker symbol (e.g., "AAPL", "MSFT").
+        form_type (str): Type of SEC filing to use. Options: "10-K"- Annual financial statements (more comprehensive),"10-Q": Quarterly financial statements (more recent, but limited scope)
         statement_type (str): One of "cashflow", "balance_sheet", or "income".
         n (int): Number of recent 10-K filings to retrieve. Defaults to 5.
 
@@ -278,7 +280,7 @@ def get_financial_statement(
         ValueError: If the statement_type is invalid or if no filings/statements are found.
     """
     c = Company(ticker)
-    filings = c.get_filings(form="10-K").latest(n)
+    filings = c.get_filings(form=form_type).latest(n)
     filings = util_ensure_list(filings)
 
     xbs = XBRLS.from_filings(filings)
@@ -325,6 +327,12 @@ def get_client_info(company_cik: str) -> str:
     store = get_store() 
     client_info = store.get(("clients",), company_cik) 
     return str(client_info.value) if client_info else "Unknown client"
+
+## NODES 
+
+
+
+## TOOLS 
 
 def get_earnings(ticker: str, n: int):
     """
