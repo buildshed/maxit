@@ -14,7 +14,7 @@ from edgar.xbrl.stitching import XBRLS
 from typing import Literal
 from collections.abc import Iterable
 import pandas as pd
-from langgraph.graph import START, StateGraph, MessagesState
+from langgraph.graph import START, StateGraph, MessagesState, END
 from langgraph.prebuilt import tools_condition, ToolNode
 from datetime import datetime, timezone
 from langchain_community.tools.yahoo_finance_news import YahooFinanceNewsTool
@@ -297,6 +297,10 @@ def get_financial_statement(
 
     return stmt.to_dataframe()
 
+def manage_memory_node(state: dict)->dict:
+    return state
+
+
 ## Save client infor to memory store
 def save_client_info(client_memory: ClientMemory) -> str: 
     """
@@ -439,14 +443,21 @@ finnhub_client = finnhub.Client(api_key=fn_api_key)
 builder = StateGraph(MessagesState)
 builder.add_node("assistant", chatbot)
 builder.add_node("tools", ToolNode(tools))
+builder.add_node("manage_memory_node", manage_memory_node)
+
 builder.add_edge(START, "assistant")
 builder.add_conditional_edges(
     "assistant",
     # If the latest message (result) from assistant is a tool call -> tools_condition routes to tools
     # If the latest message (result) from assistant is a not a tool call -> tools_condition routes to END
     tools_condition,
+    {
+        "tools": "tools",
+        END: "manage_memory_node"
+    } # ← acts like a default
 )
 builder.add_edge("tools", "assistant")
+builder.add_edge("manage_memory_node", END)
 
 # Compile graph
 graph = builder.compile()
