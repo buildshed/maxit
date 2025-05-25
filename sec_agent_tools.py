@@ -1,6 +1,6 @@
 from langchain_community.tools.tavily_search import TavilySearchResults
 from util_tools import FilingItemSummary, REQUIRED_KEY_VALUES
-from util_tools import util_ensure_list, get_finnhub_client
+from util_tools import util_ensure_list, get_finnhub_client, convert_unix_to_datetime
 from langchain_openai import ChatOpenAI
 from edgar import *
 from edgar.xbrl.stitching import XBRLS
@@ -195,9 +195,9 @@ def get_stock_price(ticker: str):
         get_stock_price("AAPL")
     """
     finnhub_client = get_finnhub_client()
-    quote_items = finnhub_client.quote(ticker)
-    return quote_items
-
+    quote_item = finnhub_client.quote(ticker)
+    quote_item['t'] = convert_unix_to_datetime(quote_item['t'])
+    return quote_item
 
 def generate_structured_item_from_10k(
     ticker: str,

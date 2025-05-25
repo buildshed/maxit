@@ -22,7 +22,7 @@ from langchain_core.messages.human import HumanMessage
 from langchain_core.messages.ai import AIMessage
 from langchain_core.messages.base import BaseMessage
 from sec_agent_tools import web_search, get_latest_filings, get_cik, get_ticker_given_name, get_earnings, get_analyst_rating_summary, get_stock_price, generate_structured_item_from_10k, get_financial_statement
-from util_tools import convert_unix_to_datetime, ClientMemory
+from util_tools import ClientMemory
 
 # Access the last AI message
 def get_last_ai_message(messages: List)-> BaseMessage:
@@ -47,9 +47,9 @@ def should_update_or_save_memory(state: dict)->Literal["update_memory_node", "__
     messages = state["messages"]
     last_human_message = get_last_human_message(messages)
     last_ai_message = get_last_ai_message(messages)
-
-    if "peer" in last_human_message.content.lower():
-        return ("update_memory_node")
+    if last_human_message and isinstance(last_human_message.content, str):
+        if "peer" in last_human_message.content.lower():
+            return ("update_memory_node")
     
     return END
 
@@ -94,7 +94,7 @@ def chatbot(state: dict) -> dict:
     return {"messages": [message]}
 
 # Define Tools (including web search, chatbot. Exclude human assistance)
-tools = [web_search, YahooFinanceNewsTool(), generate_structured_item_from_10k, get_stock_price, get_analyst_rating_summary, get_earnings, convert_unix_to_datetime, get_ticker_given_name, get_cik, get_latest_filings, get_financial_statement, get_client_info, save_client_info]
+tools = [web_search, YahooFinanceNewsTool(), generate_structured_item_from_10k, get_stock_price, get_analyst_rating_summary, get_earnings, get_ticker_given_name, get_cik, get_latest_filings, get_financial_statement, get_client_info, save_client_info]
 llm = ChatOpenAI(model="gpt-4o")
 llm_with_tools = llm.bind_tools(tools)
 store = InMemoryStore() 
