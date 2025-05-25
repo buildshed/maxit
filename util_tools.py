@@ -4,6 +4,8 @@ from pydantic import BaseModel, Field
 from collections.abc import Iterable
 from finnhub import Client
 import os
+from edgar.company_reports import FilingStructure, TenK, TenQ
+
 
 # Define classes 
 class PeerInfo(TypedDict):
@@ -51,6 +53,15 @@ REQUIRED_KEY_VALUES = {
         "Sensitivity to Rate Movements"
     ]
 }
+
+def generate_item_descriptions(structure: FilingStructure) -> str:
+    lines = []
+    for part, items in structure.structure.items():
+        for item_code, content in items.items():
+            title = content.get("Title", "No Title")
+            desc = content.get("Description", "").strip()
+            lines.append(f"  - \"{item_code}\": {title} — {desc}")
+    return "\n".join(lines)
 
 def get_finnhub_client() -> Client:
     api_key = os.getenv("FINNHUB_API_KEY")

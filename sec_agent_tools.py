@@ -1,5 +1,5 @@
 from langchain_community.tools.tavily_search import TavilySearchResults
-from util_tools import FilingItemSummary, REQUIRED_KEY_VALUES
+from util_tools import FilingItemSummary, REQUIRED_KEY_VALUES, generate_item_descriptions
 from util_tools import util_ensure_list, get_finnhub_client, convert_unix_to_datetime
 from langchain_openai import ChatOpenAI
 from edgar import *
@@ -198,40 +198,11 @@ def get_stock_price(ticker: str):
     quote_item = finnhub_client.quote(ticker)
     quote_item['t'] = convert_unix_to_datetime(quote_item['t'])
     return quote_item
-
+ 
 def generate_structured_item_from_10k(
     ticker: str,
     item_code: str
 ) -> FilingItemSummary:
-    """
-    Summarize and extract structured insights from a specific section of a 10-K filing.
-
-    Use this tool when a user asks for an overview, summary, or key metrics related to a specific part
-    of a company's 10-K filing. The function converts unstructured text into a structured summary with 
-    section-wise insights and extracted key-value pairs.
-
-    The `item_code` should be one of the standard 10-K sections:
-      - "ITEM 1": Business — Overview of the company, products, markets, and operations
-      - "ITEM 1A": Risk Factors — Material risks that could affect the business
-      - "ITEM 1B": Any comments from the SEC staff on the company’s previous filings that are unresolved
-      - "ITEM 2": Information about the physical properties owned or leased by the company
-      - "ITEM 3": Details of significant ongoing legal proceedings
-      - "ITEM 4": Relevant for mining companies, disclosures about mine safety and regulatory compliance
-      - "ITEM 5": Information on the company’s equity, including stock performance and shareholder matters
-      - "ITEM 7": Management's perspective on the financial condition, changes in financial condition, and results of operations.
-      - "ITEM 7A": Market Risk — Exposure to FX, interest rates, and commodities, including hedging notionals
-      - "ITEM 7": MD&A — Management’s Discussion and Analysis of financial condition and results
-      - "ITEM 8": Financial Statements — Core financial reports (income, balance sheet, cash flow)
-      - "ITEM 9": Evaluation of the effectiveness of the design and operation of the company’s disclosure controls and procedures
-      - "ITEM 9A": Evaluation of internal controls over financial reporting.
-      - "ITEM 13": Information on transactions between the company and its directors, officers and significant shareholders.
-    Input:
-      ticker: Stock ticker 
-      item_code: The section of the filing to process (e.g., "ITEM 1A")
-    
-    Output:
-      FilingItemSummary: A structured object containing section summaries and key data extracted from the text
-    """
     #get an LLM with structure output 
     llm = ChatOpenAI(model="gpt-4o")
     
@@ -268,6 +239,23 @@ def generate_structured_item_from_10k(
     structured_llm = llm.with_structured_output(FilingItemSummary)
     return structured_llm.invoke(prompt)
 
+generate_structured_item_from_10k.__doc__ = f"""
+Summarize and extract structured insights from a specific section of a 10-K filing.
+
+Use this tool when a user asks for an overview, summary, or key metrics related to a specific part
+of a company's 10-K filing. The function converts unstructured text into a structured summary with 
+section-wise insights and extracted key-value pairs.
+
+The `item_code` should be one of the standard 10-K sections:
+{generate_item_descriptions(TenK.structure)}
+
+Input:
+  ticker: Stock ticker 
+  item_code: The section of the filing to process (e.g., "ITEM 1A")
+
+Output:
+  FilingItemSummary: A structured object containing section summaries and key data extracted from the text
+"""
 
 ## Web Search 
 def web_search(query: str, num_results: int = 3) -> str:
