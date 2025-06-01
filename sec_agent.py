@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 from langchain_core.messages.human import HumanMessage
 from langchain_core.messages.ai import AIMessage
 from langchain_core.messages.base import BaseMessage
-from sec_agent_tools import web_search, get_latest_filings, get_cik, get_ticker_given_name, get_earnings, get_analyst_rating_summary, get_stock_price, generate_structured_item_from_10k, get_financial_statement
+from sec_agent_tools import web_search, get_latest_filings, get_cik, get_ticker_given_name, get_earnings, get_analyst_rating_summary, get_stock_price, generate_structured_item_from_10k, get_financial_statement, run_peer_comparison
 from util_tools import ClientMemory
 
 # Access the last AI message
@@ -94,7 +94,7 @@ def chatbot(state: dict) -> dict:
     return {"messages": [message]}
 
 # Define Tools (including web search, chatbot. Exclude human assistance)
-tools = [web_search, YahooFinanceNewsTool(), generate_structured_item_from_10k, get_stock_price, get_analyst_rating_summary, get_earnings, get_ticker_given_name, get_cik, get_latest_filings, get_financial_statement, get_client_info, save_client_info]
+tools = [web_search, YahooFinanceNewsTool(), generate_structured_item_from_10k, get_stock_price, get_analyst_rating_summary, get_earnings, get_ticker_given_name, get_cik, get_latest_filings, get_financial_statement, get_client_info, save_client_info, run_peer_comparison]
 llm = ChatOpenAI(model="gpt-4o")
 llm_with_tools = llm.bind_tools(tools)
 store = InMemoryStore() 
