@@ -1,28 +1,20 @@
 # Include libraries 
-from langchain_core.runnables import RunnableConfig
 from langgraph.config import get_store
-from langgraph.prebuilt import create_react_agent
 from langgraph.store.memory import InMemoryStore
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import AIMessage
-from typing_extensions import TypedDict, NotRequired, List
-import requests 
-import finnhub, json, os
-from edgar import *
-from edgar.xbrl.stitching import XBRLS
+from typing_extensions import List
 from typing import Literal
-from collections.abc import Iterable
-import pandas as pd
 from langgraph.graph import START, StateGraph, MessagesState, END
 from langgraph.prebuilt import tools_condition, ToolNode
 from langchain_community.tools.yahoo_finance_news import YahooFinanceNewsTool
-from edgar.company_reports import TenK
-from pydantic import BaseModel, Field
 from langchain_core.messages.human import HumanMessage
 from langchain_core.messages.ai import AIMessage
 from langchain_core.messages.base import BaseMessage
-from sec_agent_tools import web_search, get_latest_filings, get_cik, get_ticker_given_name, get_earnings, get_analyst_rating_summary, get_stock_price, generate_structured_item_from_10k, get_financial_statement, run_peer_comparison
-from util_tools import ClientMemory
+from generic_tools import web_search
+from core_utils import ClientMemory
+from data_fetch_tools import get_financial_statement, get_latest_filings, get_cik, get_ticker_given_name, get_earnings,get_analyst_rating_summary, get_stock_price
+from analysis_tools import run_peer_comparison
 
 # Access the last AI message
 def get_last_ai_message(messages: List)-> BaseMessage:
@@ -94,13 +86,10 @@ def chatbot(state: dict) -> dict:
     return {"messages": [message]}
 
 # Define Tools (including web search, chatbot. Exclude human assistance)
-tools = [web_search, YahooFinanceNewsTool(), generate_structured_item_from_10k, get_stock_price, get_analyst_rating_summary, get_earnings, get_ticker_given_name, get_cik, get_latest_filings, get_financial_statement, get_client_info, save_client_info, run_peer_comparison]
+tools = [web_search, YahooFinanceNewsTool(), get_stock_price, get_analyst_rating_summary, get_earnings, get_ticker_given_name, get_cik, get_latest_filings, get_financial_statement, get_client_info, save_client_info, run_peer_comparison]
 llm = ChatOpenAI(model="gpt-4o")
 llm_with_tools = llm.bind_tools(tools)
 store = InMemoryStore() 
-
-# Set identity for EdgarTools
-set_identity("your.name@example.com")
 
 # Define and complile graph  
 # Build graph

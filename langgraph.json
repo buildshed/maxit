@@ -1,8 +1,7 @@
 {
   "dockerfile_lines": [],
   "graphs": {
-    "sec_agent": "./sec_agent.py:graph",
-    "agent6": "./agent6.py:graph"
+    "agent": "./agent.py:graph"
   },
   "env": "./.env",
   "python_version": "3.11",

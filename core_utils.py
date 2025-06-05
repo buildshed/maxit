@@ -4,8 +4,7 @@ from pydantic import BaseModel, Field
 from collections.abc import Iterable
 from finnhub import Client
 import os
-from edgar.company_reports import FilingStructure, TenK, TenQ
-
+from edgar.core import set_identity
 
 # Define classes 
 class PeerInfo(TypedDict):
@@ -54,14 +53,6 @@ REQUIRED_KEY_VALUES = {
     ]
 }
 
-def generate_item_descriptions(structure: FilingStructure) -> str:
-    lines = []
-    for part, items in structure.structure.items():
-        for item_code, content in items.items():
-            title = content.get("Title", "No Title")
-            desc = content.get("Description", "").strip()
-            lines.append(f"  - \"{item_code}\": {title} — {desc}")
-    return "\n".join(lines)
 
 def get_finnhub_client() -> Client:
     api_key = os.getenv("FINNHUB_API_KEY")
@@ -69,7 +60,18 @@ def get_finnhub_client() -> Client:
         raise ValueError("Environment variable FINNHUB_API_KEY is not set")
     return Client(api_key=api_key)
 
-def util_ensure_list(item):
+def set_sec_client():
+    """
+    Initializes and returns the SEC client with identity set.
+
+    Identity (email) is fetched from the SEC_IDENTITY environment variable.
+    """
+    email = os.getenv("SEC_IDENTITY", "default@example.com")
+    set_identity(email)
+    # You can optionally return a client or None if set_identity is global
+    return True
+
+def ensure_list(item):
     """
     Ensures the input is returned as a list.
     - If input is None → returns an empty list.
@@ -99,3 +101,4 @@ def convert_unix_to_datetime(timestamp: int) -> str:
     """
     dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
     return dt.strftime('%Y-%m-%d %H:%M:%S UTC')
+
