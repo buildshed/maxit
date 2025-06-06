@@ -13,13 +13,12 @@ source buildshed-env/bin/activate
 ```
 
 ### Install dependencies 
-? two requirements.txt files. Are they both needed?
+
 pip install -r requirements.txt
 
+
 ### Edit the env file 
-? Location of env file 
 ```
-cd agents/
 cp .env.example .env
 ```
 Edit the .env file to provide your credentials. 
@@ -33,8 +32,8 @@ langgraph build -t maxit-image
 
 ### Start services 
 
-From project root 
 ```
+cd ..
 docker compose up -d
 ```
 
