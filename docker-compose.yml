@@ -37,4 +37,4 @@ services:
             langgraph-postgres:
                 condition: service_healthy
         env_file:
-            - ./agents/.env
+            - ./.env
