@@ -8,7 +8,7 @@ def get_financial_statement(
     ticker: str, 
     form_type: Literal["10-K", "10-Q"],
     statement_type: Literal["cashflow", "balance_sheet", "income"], 
-    n: int = 5
+    n: int = 1
 ) -> pd.DataFrame:
     """
     Fetches financial statement(s) (cash flow, balance sheet, or income statement) 
@@ -118,7 +118,7 @@ def get_ticker_given_name(company_name: str):
     result = [{"name": q["shortname"], "symbol": q["symbol"]} for q in data["quotes"]]
     return result
 
-def get_earnings(ticker: str, n: int):
+def get_earnings(ticker: str, n: int=1):
     """
     Retrieve the most recent quarterly earnings data for a given company ticker.
     This function uses the Finnhub API to fetch up to `n` earnings records for the specified
