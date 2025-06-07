@@ -1,4 +1,4 @@
-from core_utils import ensure_list, get_finnhub_client, convert_unix_to_datetime, set_sec_client
+from agents.core_utils import ensure_list, get_finnhub_client, convert_unix_to_datetime, set_sec_client
 from edgar import *
 from edgar.xbrl.stitching import XBRLS
 import requests, pandas as pd
