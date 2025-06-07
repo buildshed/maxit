@@ -1,7 +1,9 @@
 from agents.data_fetch_tools import get_latest_filings
 from pydantic import BaseModel, Field
 from typing import List, Optional
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+import json
 
 class KeyValuePair(BaseModel):
     key: str = Field(..., description="Name of the metric or fact")
@@ -17,6 +19,7 @@ class FilingItemSummary(BaseModel):
     title: str = Field(..., description="Title of the filing section, e.g., 'Business' or 'Risk Factors'")
     description: str = Field(..., description="High-level description of what this item covers")
     sections: List[BusinessSection]
+    embeddings: Optional[List[List[float]]] = None
 
 class FilingSummary(BaseModel):
     ticker: str
@@ -49,6 +52,12 @@ REQUIRED_KEY_VALUES = {
 def generate_structured_item(item_code: str, title: str, description: str,item_txt:str) -> FilingItemSummary:
     
     llm = ChatOpenAI(model="gpt-4o")
+    embedder = OpenAIEmbeddings(model="text-embedding-3-small")
+
+    text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=800,
+    chunk_overlap=100,)
+
     required_keys = REQUIRED_KEY_VALUES.get(item_code.upper(), [])
     required_key_text = (
     "- Try to extract the following key-value pairs if available:\n" +
@@ -67,8 +76,15 @@ def generate_structured_item(item_code: str, title: str, description: str,item_t
     f"TEXT:\n{item_txt}")
     #print (prompt)
     structured_llm = llm.with_structured_output(FilingItemSummary)
-    return structured_llm.invoke(prompt)
+    summary = structured_llm.invoke(prompt)
+    
+    # Chunk and embed item text
+    chunks = text_splitter.split_text(item_txt)
+    vectors = embedder.embed_documents(chunks)
 
+    summary.embeddings = vectors  # 👈 attach embeddings to the summary
+    return summary
+    
 
 tickers = ["MU","AVGO", "NVDA","AMD", "INTC", "VZ", "T"]
 items_of_interest = ["ITEM 1","ITEM 1A", "ITEM 1B", "ITEM 6", "ITEM 7","ITEM 7A" ]
@@ -98,4 +114,5 @@ for ticker in tickers:
 
         all_filing_summaries.append(filing_summary)
 
-print(all_filing_summaries)
+with open("all_filing_summaries.json", "w") as f:
+    json.dump([s.model_dump() for s in all_filing_summaries], f, indent=2)
