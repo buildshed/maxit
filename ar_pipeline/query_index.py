@@ -1,9 +1,13 @@
-import pymongo
+import os, pymongo
 from langchain_openai import OpenAIEmbeddings
 from openai import OpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
+uri = os.getenv("MONGO_URI")
 
 # connect to your Atlas cluster
-client_mongo = pymongo.MongoClient("mongodb://maxit:maxit@localhost:27017/?directConnection=true")
+client_mongo = pymongo.MongoClient(uri)
 
 query_text = "What currency risks does Micron face?"
 client_openai = OpenAI()

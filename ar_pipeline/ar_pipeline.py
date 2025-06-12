@@ -3,8 +3,8 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-import json
-import time
+import json, os, time
+from dotenv import load_dotenv
 
 class KeyValuePair(BaseModel):
     key: str = Field(..., description="Name of the metric or fact")
@@ -107,8 +107,8 @@ def generate_structured_item(
     return summary, filing_chunks
 
 
-
 start_time = time.time()
+load_dotenv()
 
 tickers = ["MU"]#["MU","AVGO", "NVDA","AMD", "INTC", "VZ", "T"]
 items_of_interest = ["ITEM 1","ITEM 1A", "ITEM 1B", "ITEM 6", "ITEM 7","ITEM 7A" ]
@@ -117,7 +117,7 @@ all_filing_summaries = []
 
 from pymongo import MongoClient
 
-conn_string = "mongodb://maxit:maxit@localhost:27017/?directConnection=true"
+conn_string = os.getenv("MONGO_URI")
 
 # Connect to MongoDB
 client = MongoClient(conn_string)

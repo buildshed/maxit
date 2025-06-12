@@ -1,9 +1,13 @@
 from pymongo.mongo_client import MongoClient
 from pymongo.operations import SearchIndexModel
 import time
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Connect to your Atlas deployment
-uri = "mongodb://maxit:maxit@localhost:27017/?directConnection=true"
+uri = os.getenv("MONGO_URI")
 client = MongoClient(uri)
 
 # Access your database and collection
