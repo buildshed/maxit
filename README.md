@@ -43,6 +43,17 @@ Confirm services are running
 docker ps
 ```
 
+### Create Long term Memory  
+
+2. Push data 
+
+cd langgraph-app
+make run-ar
+
+3. Create Index 
+python ar_pipeline/create_index.py 
+
+
 ### Start chatting 
 
 navigate to 

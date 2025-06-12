@@ -3,7 +3,7 @@ from langchain_openai import OpenAIEmbeddings
 from openai import OpenAI
 
 # connect to your Atlas cluster
-client_mongo = pymongo.MongoClient("mongodb://localhost:32768/?directConnection=true")
+client_mongo = pymongo.MongoClient("mongodb://maxit:maxit@localhost:27017/?directConnection=true")
 
 query_text = "What currency risks does Micron face?"
 client_openai = OpenAI()

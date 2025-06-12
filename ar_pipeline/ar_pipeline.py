@@ -117,8 +117,10 @@ all_filing_summaries = []
 
 from pymongo import MongoClient
 
+conn_string = "mongodb://maxit:maxit@localhost:27017/?directConnection=true"
+
 # Connect to MongoDB
-client = MongoClient("mongodb://localhost:32768/?directConnection=true")
+client = MongoClient(conn_string)
 db = client["filingdb"]
 collection_filing_summary = db["all_filing_summaries"]
 collection_filing_chunks = db["all_filing_chunks"]

@@ -3,7 +3,7 @@ from pymongo.operations import SearchIndexModel
 import time
 
 # Connect to your Atlas deployment
-uri = "mongodb://localhost:32768/?directConnection=true"
+uri = "mongodb://maxit:maxit@localhost:27017/?directConnection=true"
 client = MongoClient(uri)
 
 # Access your database and collection
