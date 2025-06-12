@@ -88,7 +88,7 @@ def generate_structured_item(
 
     # 2. Chunk and embed the raw text
     splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
-    embedder = OpenAIEmbeddings(model="text-embedding-3-small")
+    embedder = OpenAIEmbeddings(model="text-embedding-ada-002")
     chunks = splitter.split_text(item_txt)
     vectors = embedder.embed_documents(chunks)
 
@@ -118,7 +118,7 @@ all_filing_summaries = []
 from pymongo import MongoClient
 
 # Connect to MongoDB
-client = MongoClient("mongodb://maxit:maxit@localhost:27017")
+client = MongoClient("mongodb://localhost:32768/?directConnection=true")
 db = client["filingdb"]
 collection_filing_summary = db["all_filing_summaries"]
 collection_filing_chunks = db["all_filing_chunks"]
