@@ -151,7 +151,7 @@ collection_filing_chunks.delete_many({})
 
 for ticker in tickers: 
     #get the last 5 ARs
-    filings = get_latest_filings(ticker, form_type, n=1, as_text=False)
+    filings = get_latest_filings(ticker, form_type, n=2, as_text=False)
     # for each AR 
     for filing in filings:
         tenk = filing.obj()
@@ -173,8 +173,8 @@ for ticker in tickers:
                 filingitemsummaries=filing_item_summaries
         )
       # Save to MongoDB
-    collection_filing_summary.insert_one(filing_summary.model_dump())
-    collection_filing_chunks.insert_many([chunk.model_dump() for chunk in all_chunk_docs])
+        collection_filing_summary.insert_one(filing_summary.model_dump())
+        collection_filing_chunks.insert_many([chunk.model_dump() for chunk in all_chunk_docs])
 
 
 end_time = time.time()
