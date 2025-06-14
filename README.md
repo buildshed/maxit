@@ -45,13 +45,15 @@ docker ps
 
 ### Create Long term Memory  
 
-2. Push data 
+1. Push data and create index 
 
 cd langgraph-app
-make run-ar
+make run-ar-pipeline
 
-3. Create Index 
-python ar_pipeline/create_index.py 
+2. Connect to MongoDB 
+
+Use the connection string 
+mongodb://maxit:maxit@localhost:27017/?directConnection=true
 
 
 ### Start chatting 

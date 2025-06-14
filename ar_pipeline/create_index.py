@@ -14,6 +14,13 @@ client = MongoClient(uri)
 database = client["filingdb"]
 collection = database["all_filing_chunks"]
 
+try:
+    collection.drop_search_index("vector_index")
+    print("Dropped existing index 'vector_index'")
+except Exception as e:
+    print(f"Warning: Could not drop index. Maybe it doesn't exist yet. Details: {e}")
+
+
 # Create your index model, then create the search index
 search_index_model = SearchIndexModel(
   definition={
@@ -24,6 +31,10 @@ search_index_model = SearchIndexModel(
         "numDimensions": 1536,
         "similarity": "dotProduct",
         "quantization": "scalar"
+      },
+      {
+        "type": "filter",
+        "path": "item_code"
       }
     ]
   },

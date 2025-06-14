@@ -1,20 +1,38 @@
 from agents.data_fetch_tools import get_latest_filings
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from pydantic import BaseModel, Field, field_validator
+from typing import List, Optional, Literal
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import json, os, time
 from dotenv import load_dotenv
+from edgar.company_reports import TenK
+from enum import Enum
+
+def get_tenk_items():
+    all_items = []
+    #print(dir(TenK.structure))  
+    all_items = []
+    for part_dict in TenK.structure.structure.values():
+        all_items.extend(part_dict.keys())
+    return all_items
 
 class KeyValuePair(BaseModel):
     key: str = Field(..., description="Name of the metric or fact")
     value: str = Field(..., description="Value associated with the key")
 
 class FilingItemSummary(BaseModel):
+    item_code: str = Field(..., description="Filing section code like 'ITEM 1A'")
     title: str = Field(..., description="Title of the filing section, e.g., 'Business' or 'Risk Factors'")
     description: str = Field(..., description="High-level description of what this item covers")
     summary: Optional[str] = Field(None, description="Summary of the item extracted from the filing")
     key_values: List[KeyValuePair] = Field(default_factory=list)
+
+    @field_validator("item_code")
+    def validate_item_code(cls, v):
+        allowed_items = get_tenk_items()
+        if v not in allowed_items:
+            raise ValueError(f"Invalid item_code: {v}. Must be one of: {allowed_items}")
+        return v
 
 class FilingSummary(BaseModel):
     ticker: str
@@ -79,7 +97,7 @@ def generate_structured_item(
         "- Write a short summary (3–5 sentences).\n"
         "- Extract key numeric or categorical values as key-value pairs.\n"
         f"{required_key_text}"
-        "Format your output as a FilingItemSummary(title, description, summary, key_values=[...]).\n\n"
+        "Format your output as a FilingItemSummary(item_code, title, description, summary, key_values=[...]).\n\n"
         f"TEXT:\n{item_txt}"
     )
 
@@ -109,6 +127,7 @@ def generate_structured_item(
 
 start_time = time.time()
 load_dotenv()
+
 
 tickers = ["MU"]#["MU","AVGO", "NVDA","AMD", "INTC", "VZ", "T"]
 items_of_interest = ["ITEM 1","ITEM 1A", "ITEM 1B", "ITEM 6", "ITEM 7","ITEM 7A" ]

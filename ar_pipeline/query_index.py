@@ -9,7 +9,7 @@ uri = os.getenv("MONGO_URI")
 # connect to your Atlas cluster
 client_mongo = pymongo.MongoClient(uri)
 
-query_text = "What currency risks does Micron face?"
+query_text = "What currencies is Micron exposed to?"
 client_openai = OpenAI()
 response = client_openai.embeddings.create(
     input=query_text,
@@ -24,7 +24,10 @@ pipeline = [
       'path': 'embedding', 
       'queryVector': embedding, 
       'numCandidates': 150, 
-      'limit': 10
+      'limit': 10, 
+      'filter': {
+        'item_code': 'ITEM 7A'
+      }
     }
   }, {
     '$project': {
