@@ -3,6 +3,7 @@ from pymongo.operations import SearchIndexModel
 import time
 import os
 from dotenv import load_dotenv
+from config import num_embeddings_dimensions
 
 load_dotenv()
 
@@ -28,7 +29,7 @@ search_index_model = SearchIndexModel(
       {
         "type": "vector",
         "path": "embedding",
-        "numDimensions": 1536,
+        "numDimensions": num_embeddings_dimensions,
         "similarity": "dotProduct",
         "quantization": "scalar"
       },
