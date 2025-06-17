@@ -36,7 +36,15 @@ search_index_model = SearchIndexModel(
       {
         "type": "filter",
         "path": "item_code"
-      }
+      },
+      {
+        "type": "filter",
+        "path": "filingdate"
+      },
+      {
+        "type": "filter",
+        "path": "ticker"
+      },
     ]
   },
   name="vector_index",

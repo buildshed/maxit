@@ -28,6 +28,18 @@ def main():
   relevant_items = infer_relevant_items(query_text, item_map)
   print(f"🔎 Relevant 10-K item codes for query \"{query_text}\": {relevant_items}")
 
+  # select the database and collection
+  db = client_mongo["filingdb"]
+  collection = db["all_filing_chunks"]
+  
+  # Find the latest filing date 
+  latest_filing = collection.find_one(
+      {"ticker": "MU", "form": "10-K"},
+      sort=[("filingdate", -1)]
+  )
+  latest_date = latest_filing["filingdate"]
+  print("latest_date is", latest_date)
+
   # define pipeline
   pipeline = [
     {
@@ -38,7 +50,9 @@ def main():
         'numCandidates': numCandidates, 
         'limit': limit, 
         'filter': {
-          'item_code': {'$in': relevant_items}
+          'item_code': {'$in': relevant_items}, 
+          'filingdate': latest_date,
+          'ticker': 'MU'
         }
       }
     }, {
@@ -59,14 +73,15 @@ def main():
   result_cursor = client_mongo["filingdb"]["all_filing_chunks"].aggregate(pipeline)
 
   # print results
-  for i in result_cursor:
-    print(i)
+  #for i in result_cursor:
+  #  print(i)
 
   retrieved_docs = list(result_cursor)
   retrieved_chunks = [doc["chunk"] for doc in retrieved_docs if "chunk" in doc]
   #print(retrieved_chunks)
   # Optional: Truncate or filter very long content if needed
   context = "\n\n".join(retrieved_chunks)  
+  print(context)
   # Prepare the prompt
   final_prompt = (
     f"You are a financial analyst assistant. Based on the 10-K excerpts below, answer the question:\n\n"
