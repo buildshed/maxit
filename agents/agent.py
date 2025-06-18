@@ -15,6 +15,7 @@ from generic_tools import web_search
 from core_utils import ClientMemory
 from data_fetch_tools import get_financial_statement, get_latest_filings, get_cik, get_ticker_given_name, get_earnings,get_analyst_rating_summary, get_stock_price
 from analysis_tools import run_peer_comparison
+from query_ar_index import query_ar_index
 
 # Access the last AI message
 def get_last_ai_message(messages: List)-> BaseMessage:
@@ -86,7 +87,7 @@ def chatbot(state: dict) -> dict:
     return {"messages": [message]}
 
 # Define Tools (including web search, chatbot. Exclude human assistance)
-tools = [web_search, YahooFinanceNewsTool(), get_stock_price, get_analyst_rating_summary, get_earnings, get_ticker_given_name, get_cik, get_latest_filings, get_financial_statement, get_client_info, save_client_info, run_peer_comparison]
+tools = [web_search, YahooFinanceNewsTool(), get_stock_price, get_analyst_rating_summary, get_earnings, get_ticker_given_name, get_cik, get_latest_filings, get_financial_statement, get_client_info, save_client_info, run_peer_comparison, query_ar_index]
 llm = ChatOpenAI(model="gpt-4o")
 llm_with_tools = llm.bind_tools(tools)
 store = InMemoryStore() 
@@ -98,8 +99,6 @@ builder.add_node("chatbot", chatbot)
 builder.add_node("tools", ToolNode(tools))
 builder.add_node("manage_memory_connector_node", manage_memory_connector_node)
 builder.add_node("update_memory_node", update_memory_node)
-
-
 builder.add_edge(START, "chatbot")
 builder.add_conditional_edges(
     "chatbot",
@@ -117,7 +116,5 @@ builder.add_edge("update_memory_node", END)
 
 # Compile graph
 graph = builder.compile()
-
-
 
 
