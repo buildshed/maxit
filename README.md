@@ -48,7 +48,7 @@ docker ps
 1. Push data and create index 
 
 cd langgraph-app
-make run-ar-pipeline
+make create-ar-memory
 
 2. Connect to MongoDB 
 

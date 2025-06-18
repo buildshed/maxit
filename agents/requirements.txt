@@ -7,3 +7,5 @@ langchain-tavily
 edgartools
 finnhub-python
 yfinance
+openai
+pymongo
