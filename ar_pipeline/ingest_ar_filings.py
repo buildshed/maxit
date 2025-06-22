@@ -4,7 +4,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 import os, time
 from dotenv import load_dotenv
 from pymongo import MongoClient
-from schemas import FilingItemSummary, FilingSummary, FilingChunks, LLMGeneratedFilingItemSummary
+from agents.schemas import FilingItemSummary, FilingSummary, FilingChunks, LLMGeneratedFilingItemSummary
 from constants import REQUIRED_KEY_VALUES
 from typing import List
 from config import tickers_to_ingest, form_types_to_ingest, tenk_items_to_ingest, num_years_data_to_ingest
@@ -79,7 +79,7 @@ def main():
     form_type = form_types_to_ingest[0] # Just AR for now
     items_of_interest = tenk_items_to_ingest
        
-    conn_string = os.getenv("MONGO_URI")
+    conn_string = os.getenv("MONGO_URI_LOCAL")
 
     # Connect to MongoDB
     client = MongoClient(conn_string)

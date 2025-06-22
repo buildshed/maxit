@@ -8,7 +8,7 @@ from config import num_embeddings_dimensions
 load_dotenv()
 
 # Connect to your Atlas deployment
-uri = os.getenv("MONGO_URI")
+uri = os.getenv("MONGO_URI_LOCAL")
 client = MongoClient(uri)
 
 # Access your database and collection
