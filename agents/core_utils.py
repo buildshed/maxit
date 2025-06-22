@@ -5,6 +5,7 @@ from collections.abc import Iterable
 from finnhub import Client
 import os
 from edgar.core import set_identity
+from edgar.company_reports import TenK
 
 # Define classes 
 class PeerInfo(TypedDict):
@@ -102,3 +103,10 @@ def convert_unix_to_datetime(timestamp: int) -> str:
     dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
     return dt.strftime('%Y-%m-%d %H:%M:%S UTC')
 
+def get_tenk_items():
+    all_items = []
+    #print(dir(TenK.structure))  
+    all_items = []
+    for part_dict in TenK.structure.structure.values():
+        all_items.extend(part_dict.keys())
+    return all_items

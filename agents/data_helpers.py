@@ -1,6 +1,9 @@
-from data_fetch_tools import get_financial_statement, get_stock_price, get_analyst_rating_summary, get_earnings
+from agents.data_fetch_tools import get_financial_statement, get_stock_price, get_analyst_rating_summary, get_earnings
 from typing import List, Dict, Any
 from edgar.company_reports import FilingStructure
+from edgar.company_reports import TenK
+from agents.schemas import InferredItemCodes
+from langchain_openai import ChatOpenAI
 
 def gather_peer_data(tickers: List[str]) -> Dict[str, Any]:
     peer_data = {}
@@ -52,3 +55,26 @@ def generate_item_descriptions(structure: FilingStructure) -> str:
             desc = content.get("Description", "").strip()
             lines.append(f"  - \"{item_code}\": {title} — {desc}")
     return "\n".join(lines)
+
+def get_tenk_item_descriptions() -> dict[str, str]:
+    descriptions = {}
+    for part_dict in TenK.structure.structure.values():
+        for item_code, meta in part_dict.items():
+            title = meta.get("Title", "")
+            desc = meta.get("Description", "")
+            descriptions[item_code] = f"{title}: {desc}"
+    return descriptions
+
+def infer_relevant_items(query: str, item_map: dict[str, str]) -> list[str]:
+    item_list_str = "\n".join([f"{code}: {desc}" for code, desc in item_map.items()])
+    prompt = (
+        f"You are a smart assistant that maps user questions to relevant items from a 10-K filing.\n\n"
+        f"Question: \"{query}\"\n\n"
+        f"Choose one or more relevant items from the list below based on the topic of the question.\n"
+        f"Format your output as InferredItemCodes(item_codes=[...])\n\n"
+        f"Available Items:\n{item_list_str}"
+    )
+    llm = ChatOpenAI(model="gpt-4o")
+    structured_llm =llm.with_structured_output(InferredItemCodes)
+    response = structured_llm.invoke(prompt)
+    return response.item_codes

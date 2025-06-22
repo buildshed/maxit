@@ -1,6 +1,6 @@
 from langchain_openai import ChatOpenAI
 from edgar import *
-from data_helpers import gather_peer_data, format_peer_comparison_prompt
+from agents.data_helpers import gather_peer_data, format_peer_comparison_prompt
 
 def run_peer_comparison(tickers: List[str]) -> str:
     """
