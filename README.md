@@ -24,44 +24,45 @@ cp .env.example .env
 Edit the .env file to provide your credentials. 
 
 ### Create the langgraph service image 
-
 ```
-cd agents/
-langgraph build -t maxit-image
+make create-app-image
 ```
 
 ### Start services 
-
 ```
-cd ..
-docker compose up -d
+make start-services
 ```
 
 Confirm services are running 
-
 ```
 docker ps
 ```
 
-### Create Long term Memory  
+### Create Long term Memory  (AR)
 
-1. Push data and create index 
+1. Fetch data and create index 
 
-cd langgraph-app
 make create-ar-memory
 
-2. Connect to MongoDB 
+## Use the Maxit Chatbot 
 
-Use the connection string 
-mongodb://maxit:maxit@localhost:27017/?directConnection=true
+### Start the Chatbot  
 
+We use Agent vercel Chabtot to connect to our Langgraph Agent end point. 
 
-### Start chatting 
+1. Navigate to [Agent Vercel Chatbot](https://agentchat.vercel.app/) 
+2. Complete the set-up 
+    - Deployment URL: Provide the URL of the langgraph-api endpoint (port 8123) 
+    - Assistant / Graph ID: 'agent' 
+    - Langsmith API key 
 
-navigate to 
+Happy chatting ! 
 
-[Chat Endpoint](https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:8123)
+## Inspect and Debug 
 
-If you are running services on a hosted platform (such as AWS EC2 or Github codespaces)
+1. Connect to MongoDB 
+    - Connection string: mongodb://maxit:maxit@localhost:27017/?directConnection=true
+    - Connect using a mongo client such as 'MongoDB for VS Code Extension' MongoDB Compass 
+2. Connect to langsmith tracing 
+    - Go to https://smith.langchain.com/
 
-[Chat Endpoint](https://smith.langchain.com/studio/?baseUrl=your_public_deployed_endpoint)

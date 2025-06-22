@@ -1,10 +1,12 @@
 # Makefile
 .PHONY: run-ar-pipeline query-ar-memory
 
-# Target to run the annual report pipeline
+create-app-image: 
+	cd agents && langgraph build -t maxit-image --no-cache
+start-services: 
+	docker compose up -d
 create-ar-memory:
 	PYTHONPATH=. python ar_pipeline/ingest_ar_filings.py && \
 	PYTHONPATH=. python ar_pipeline/create_ar_index.py
-# target to query the pipeline 
-query-ar-memory: 
-	PYTHONPATH=. python ar_pipeline/query_ar_index.py
+test-ar-index: 
+	python notebooks/mongo_test.py
