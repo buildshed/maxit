@@ -2,7 +2,7 @@
 .PHONY: run-ar-pipeline query-ar-memory
 
 create-app-image: 
-	cd agents && langgraph build -t maxit-image --no-cache
+	cd agents && langgraph build -t maxit-image 
 start-services: 
 	docker compose up -d
 create-ar-memory:

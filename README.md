@@ -14,8 +14,9 @@ source buildshed-env/bin/activate
 
 ### Install dependencies 
 
+```
 pip install -r requirements.txt
-
+```
 
 ### Edit the env file 
 ```
@@ -42,7 +43,9 @@ docker ps
 
 1. Fetch data and create index 
 
+```
 make create-ar-memory
+```
 
 ## Use the Maxit Chatbot 
 
