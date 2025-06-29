@@ -89,9 +89,10 @@ def get_cik (name: str) -> str:
     """
     set_sec_client()
     
-    ticker = get_ticker_given_name(name)
+    ticker = get_ticker_given_name(name)[0]['symbol']
     c = Company(ticker)    
     cik_raw = c.cik
+    print(f"cik_raw={cik_raw} ({type(cik_raw)})")
     cik_formatted = f"CIK{int(cik_raw):010d}"
     return cik_formatted
 
