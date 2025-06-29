@@ -7,15 +7,11 @@ from typing_extensions import List
 from typing import Literal
 from langgraph.graph import START, StateGraph, MessagesState, END
 from langgraph.prebuilt import tools_condition, ToolNode
-from langchain_community.tools.yahoo_finance_news import YahooFinanceNewsTool
 from langchain_core.messages.human import HumanMessage
 from langchain_core.messages.ai import AIMessage
 from langchain_core.messages.base import BaseMessage
-from agents.generic_tools import web_search
 from agents.core_utils import ClientMemory
-from agents.data_fetch_tools import get_financial_statement, get_latest_filings, get_cik, get_ticker_given_name, get_earnings,get_analyst_rating_summary, get_stock_price
-from agents.analysis_tools import run_peer_comparison
-from agents.query_ar_index import query_ar_index
+from tool_registry import tools
 
 # Access the last AI message
 def get_last_ai_message(messages: List)-> BaseMessage:
@@ -80,16 +76,14 @@ def get_client_info(company_cik: str) -> str:
     client_info = store.get(("clients",), company_cik) 
     return str(client_info.value) if client_info else "Unknown client"
 
-
 # Chatbot Node (uses basic dict state)
 def chatbot(state: dict) -> dict:
     message = llm_with_tools.invoke(state["messages"])
     return {"messages": [message]}
 
-# Define Tools (including web search, chatbot. Exclude human assistance)
-tools = [web_search, YahooFinanceNewsTool(), get_stock_price, get_analyst_rating_summary, get_earnings, get_ticker_given_name, get_cik, get_latest_filings, get_financial_statement, get_client_info, save_client_info, run_peer_comparison, query_ar_index]
 llm = ChatOpenAI(model="gpt-4o")
 llm_with_tools = llm.bind_tools(tools)
+
 store = InMemoryStore() 
 
 # Define and complile graph  
