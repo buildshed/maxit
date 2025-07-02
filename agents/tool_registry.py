@@ -13,7 +13,7 @@ from langchain_community.tools.yahoo_finance_news import YahooFinanceNewsTool
 _base_tools = [
     web_search, YahooFinanceNewsTool(), get_stock_price, get_analyst_rating_summary,
     get_earnings, get_ticker_given_name, get_cik, get_latest_filings,
-    get_financial_statement, run_peer_comparison, query_ar_index,
+    get_financial_statement, run_peer_comparison #query_ar_index,
 ]
 
 def list_tools() -> str:

@@ -1,3 +1,5 @@
+# Maxit v1 
+
 ## Installation Instructions
 
 ### Git clone the repo 
@@ -39,14 +41,6 @@ Confirm services are running
 docker ps
 ```
 
-### Create Long term Memory  (AR)
-
-1. Fetch data and create index 
-
-```
-make create-ar-memory
-```
-
 ## Use the Maxit Chatbot 
 
 ### Start the Chatbot  
@@ -69,3 +63,13 @@ Happy chatting !
 2. Connect to langsmith tracing 
     - Go to https://smith.langchain.com/
 
+
+## Maxit v2 (Coming soon) 
+
+1. Ambient Agent: An Annual report Pipeline agent that runs on demand to:
+     - Pull annual reports 
+     - Extract key nuggets (facts) and save to memory (MongoDB)
+     - Chunk and vectorize the text to store in a Vector DB (MongoDB)
+2. Agentic RAG: Use AI Agent to query the RAG (as needed) 
+3. Memory: Update client intelligence nuggets in memory based on user interaction (MongoDB)
+4. Memory: Save analysis results to memory (pointers to results) 
