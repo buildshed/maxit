@@ -1,6 +1,5 @@
 from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
-from agents.core_utils import get_tenk_items
 
 class KeyValuePair(BaseModel):
     key: str = Field(..., description="Name of the metric or fact")
@@ -15,6 +14,7 @@ class FilingItemSummary(BaseModel):
 
     @field_validator("item_code")
     def validate_item_code(cls, v):
+        from agents.core_utils import get_tenk_items
         allowed_items = get_tenk_items()
         if v not in allowed_items:
             raise ValueError(f"Invalid item_code: {v}. Must be one of: {allowed_items}")

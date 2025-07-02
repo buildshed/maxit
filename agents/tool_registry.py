@@ -2,7 +2,7 @@ from typing_extensions import List
 from agents.data_fetch_tools import (
     get_stock_price, get_analyst_rating_summary, get_earnings,
     get_ticker_given_name, get_cik, get_latest_filings,
-    get_financial_statement
+    get_financial_statement, get_latest_10K_item_summary
 )
 from agents.generic_tools import web_search
 from agents.analysis_tools import run_peer_comparison
@@ -13,7 +13,7 @@ from langchain_community.tools.yahoo_finance_news import YahooFinanceNewsTool
 _base_tools = [
     web_search, YahooFinanceNewsTool(), get_stock_price, get_analyst_rating_summary,
     get_earnings, get_ticker_given_name, get_cik, get_latest_filings,
-    get_financial_statement, run_peer_comparison #query_ar_index,
+    get_financial_statement, run_peer_comparison, get_latest_10K_item_summary #query_ar_index,
 ]
 
 def list_tools() -> str:

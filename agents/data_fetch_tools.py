@@ -1,8 +1,61 @@
-from agents.core_utils import ensure_list, get_finnhub_client, convert_unix_to_datetime, set_sec_client
+from agents.core_utils import summarize_item_text, infer_relevant_items,get_tenk_items, get_tenk_item_descriptions, ensure_list, get_finnhub_client, convert_unix_to_datetime, set_sec_client
+from agents.schemas import FilingItemSummary
 from edgar import *
 from edgar.xbrl.stitching import XBRLS
 import requests, pandas as pd
 from typing import Literal
+
+
+def get_latest_10K_item_summary(user_query: str, ticker:str, item_codes: Optional[List[str]]=None) -> FilingItemSummary:
+    """
+    Generate a summarized view of the latest 10-K filing items for a given company.
+
+    If no item codes are provided, the function will infer the most relevant 10-K item(s) 
+    based on the user's query using an LLM-based matching system. For each specified or 
+    inferred item code, the function fetches the latest 10-K filing for the given ticker,
+    extracts the section text, and produces a concise summary using a language model.
+
+    Args:
+        user_query (str): A natural language query describing the type of information the user is seeking.
+        ticker (str): Stock ticker symbol of the company (e.g., "MU" for Micron).
+        item_codes (Optional[List[str]]): A list of specific 10-K item codes to summarize (e.g., ["ITEM 1A"]).
+            If None, relevant items will be inferred from the query.
+
+    Returns:
+        str: A formatted string containing the summarized text for each specified or inferred 10-K item
+        from the most recent filing, including filing metadata and section headers.
+    """
+     
+    # Case 1: item_code not specified — infer it from the user_query
+    if item_codes is None:
+        item_map = get_tenk_item_descriptions()
+        relevant_items = infer_relevant_items(user_query, item_map)
+        item_codes = relevant_items
+    else:
+        # Case 2: item_code specified — validate it
+        allowed_items = get_tenk_items()
+        invalid_items = [code for code in item_codes if code not in allowed_items]
+        if invalid_items:
+            raise ValueError(f"Invalid item codes: {invalid_items}. Must be one of: {sorted(allowed_items)}")
+    
+    # start processing. We have item_codes, ticker and num_last_10k_filings 
+    form_type = "10-K"
+    filing = get_latest_filings(ticker, form_type, n=1, as_text=False)
+    filing = filing[0]
+    tenk = filing.obj()
+    filing_text = f"\n\n--- Filing: {filing.filing_date} ---\n"
+    for item_code in item_codes:
+        tenk_item = tenk.structure.get_item(item_code)
+        title = tenk_item["Title"]
+        description = tenk_item["Description"]
+        item_txt = str(tenk[item_code])
+        
+        summarized_item_text = summarize_item_text(item_code, title, description, item_txt)
+        filing_text += f"\n === Summary of {item_code}: {title} ===\n{summarized_item_text}"
+            
+    return filing_text.strip()
+
+
 
 def get_financial_statement(
     ticker: str, 
