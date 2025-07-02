@@ -39,10 +39,11 @@ services:
         env_file:
             - ./.env
     
-    mongodb:
-        image: mongodb/mongodb-atlas-local
-        environment:
-        - MONGODB_INITDB_ROOT_USERNAME=maxit
-        - MONGODB_INITDB_ROOT_PASSWORD=maxit
-        ports:
-        - 27017:27017
+    # Prep for v2 
+    #mongodb:
+    #    image: mongodb/mongodb-atlas-local
+    #    environment:
+    #    - MONGODB_INITDB_ROOT_USERNAME=maxit
+    #    - MONGODB_INITDB_ROOT_PASSWORD=maxit
+    #    ports:
+    #    - 27017:27017
