@@ -1,10 +1,11 @@
 # Makefile
-.PHONY: run-ar-pipeline query-ar-memory
 
 create-app-image: 
 	cd agents && langgraph build -t maxit-image 
 start-services: 
 	docker compose up -d
+stop-services: 
+	docker compose down 
 
 # Pre-work for V2
 #create-ar-memory:
