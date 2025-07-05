@@ -39,6 +39,14 @@ services:
         env_file:
             - ./.env
     
+    frontend:
+        build:
+            context: ./agent-chat-ui
+        ports:
+            - "3000:3000"
+        restart: always
+
+
     # Prep for v2 
     #mongodb:
     #    image: mongodb/mongodb-atlas-local
