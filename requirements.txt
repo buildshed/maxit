@@ -1,8 +1,1 @@
-langgraph
 langgraph-cli[inmem]
-finnhub-python
-edgartools
-langchain-openai
-langchain-core
-langchain-community
-pymongo
