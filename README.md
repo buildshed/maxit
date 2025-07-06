@@ -4,8 +4,8 @@
 
 ### Git clone the repo 
 ```
-git clone https://github.com/2gauravc/langgraph-test.git
-cd langgraph-test
+ggit clone https://github.com/buildshed/maxit.git
+cd maxit
 ```
 
 ### Create and activate an environment 
@@ -58,7 +58,7 @@ The following services are started:
 
 Happy chatting ! 
 
-Note: Installing on a cloud server (Like Digital Ocean or AWS) or on a cloud absed IDE like Github Codespaces? Refer [INSTALL EXTRAS](./install_extras.md)
+Note: Installing on a cloud server (Like Digital Ocean or AWS) or on a cloud based IDE like Github Codespaces? Refer [INSTALL EXTRAS](./install_extras.md)
 
 
 ## Maxit v2 (Coming soon) 
