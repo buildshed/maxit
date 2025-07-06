@@ -4,7 +4,7 @@
 
 ### Git clone the repo 
 ```
-ggit clone https://github.com/buildshed/maxit.git
+git clone https://github.com/buildshed/maxit.git
 cd maxit
 ```
 
