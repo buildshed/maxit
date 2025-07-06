@@ -58,6 +58,9 @@ The following services are started:
 
 Happy chatting ! 
 
+Note: Installing on a cloud server (Like Digital Ocean or AWS) or on a cloud absed IDE like Github Codespaces? Refer [INSTALL EXTRAS](./install_extras.md)
+
+
 ## Maxit v2 (Coming soon) 
 
 1. Ambient Agent: An Annual report Pipeline agent that runs on demand to:
